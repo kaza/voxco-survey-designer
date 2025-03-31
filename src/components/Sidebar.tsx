@@ -1,31 +1,50 @@
 'use client';
 
-import { Chat } from '@/types/chat';
-import { useState } from 'react';
+import { Chat } from '@/types/api';
+import { useState, useEffect } from 'react';
 
 interface SidebarProps {
     onChatSelect: (chatId: string) => void;
 }
 
-// Dummy data for now
-const dummyChats: Chat[] = [
-    { id: '1', title: 'Chat with John' },
-    { id: '2', title: 'Project Discussion' },
-    { id: '3', title: 'Team Meeting' },
-];
-
 export default function Sidebar({ onChatSelect }: SidebarProps) {
+    const [chats, setChats] = useState<Chat[]>([]);
     const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetchChats();
+    }, []);
+
+    const fetchChats = async () => {
+        try {
+            const response = await fetch('/api/chats');
+            const data = await response.json();
+            setChats(data.chats);
+        } catch (error) {
+            console.error('Failed to fetch chats:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleChatClick = (chatId: string) => {
         setSelectedChatId(chatId);
         onChatSelect(chatId);
     };
 
+    if (loading) {
+        return (
+            <div className="w-64 h-screen bg-gray-900 text-white p-4">
+                Loading chats...
+            </div>
+        );
+    }
+
     return (
         <div className="w-64 h-screen bg-gray-900 text-white p-4">
             <div className="space-y-2">
-                {dummyChats.map((chat) => (
+                {chats.map((chat) => (
                     <div
                         key={chat.id}
                         className={`p-3 rounded-lg cursor-pointer hover:bg-gray-800 transition-colors ${

@@ -1,7 +1,7 @@
 'use client';
 
-import { Message } from '@/types/chat';
-import { useState } from 'react';
+import { Message } from '@/types/api';
+import { useState, useEffect } from 'react';
 
 interface ChatViewProps {
     chatId: string | null;
@@ -10,29 +10,65 @@ interface ChatViewProps {
 export default function ChatView({ chatId }: ChatViewProps) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputMessage, setInputMessage] = useState('');
+    const [loading, setLoading] = useState(false);
 
-    const handleSendMessage = (e: React.FormEvent) => {
+    useEffect(() => {
+        if (chatId) {
+            fetchMessages();
+        }
+    }, [chatId]);
+
+    const fetchMessages = async () => {
+        if (!chatId) return;
+        
+        setLoading(true);
+        try {
+            const response = await fetch(`/api/chats/${chatId}/messages`);
+            const data = await response.json();
+            setMessages(data.messages);
+        } catch (error) {
+            console.error('Failed to fetch messages:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
         
-        if (!inputMessage.trim()) return;
+        if (!inputMessage.trim() || !chatId) return;
 
-        // Add user message
-        const userMessage: Message = {
-            id: Date.now().toString(),
-            content: inputMessage,
-            timestamp: new Date().toISOString()
-        };
-
-        // Add bot response
-        const botMessage: Message = {
-            id: (Date.now() + 1).toString(),
-            content: `Hello world! Current time: ${new Date().toLocaleTimeString()}`,
-            timestamp: new Date().toISOString()
-        };
-
-        setMessages(prev => [...prev, userMessage, botMessage]);
+        const content = inputMessage;
         setInputMessage('');
+
+        try {
+            const response = await fetch(`/api/chats/${chatId}/messages`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ content }),
+            });
+
+            const data = await response.json();
+            setMessages(prev => [...prev, {
+                id: Date.now().toString(),
+                content,
+                timestamp: new Date().toISOString(),
+                sender: 'user'
+            }, data.message]);
+        } catch (error) {
+            console.error('Failed to send message:', error);
+        }
     };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-screen text-white">
+                Loading messages...
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col h-screen">
@@ -41,10 +77,14 @@ export default function ChatView({ chatId }: ChatViewProps) {
                 {messages.map((message) => (
                     <div
                         key={message.id}
-                        className="p-3 rounded-lg bg-gray-800 max-w-[80%]"
+                        className={`p-3 rounded-lg max-w-[80%] ${
+                            message.sender === 'user' 
+                                ? 'ml-auto bg-blue-600' 
+                                : 'bg-gray-800'
+                        }`}
                     >
                         <div className="text-white">{message.content}</div>
-                        <div className="text-xs text-gray-400 mt-1">
+                        <div className="text-xs text-gray-300 mt-1">
                             {new Date(message.timestamp).toLocaleTimeString()}
                         </div>
                     </div>
