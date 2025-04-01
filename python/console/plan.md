@@ -1,7 +1,29 @@
 # Multi-Agent Survey Designer Implementation Plan
 
 ## Overview
-This document outlines the implementation plan for a multi-agent system designed to help users create and edit surveys. The system uses multiple specialized agents to handle different aspects of survey management.
+This document outlines the implementation plan for a multi-agent system designed to help users create and edit surveys. The system uses multiple specialized agents to handle different aspects of survey management, with direct agent-to-agent communication and a CLI interface.
+
+## Project Structure
+```
+survey_designer/
+├── __init__.py
+├── main.py
+├── models/
+│   ├── __init__.py
+│   └── survey.py
+├── agents/
+│   ├── __init__.py
+│   ├── triage_agent.py
+│   ├── survey_creation_agent.py
+│   ├── survey_editor_agent.py
+│   └── question_editor_agent.py
+├── tools/
+│   ├── __init__.py
+│   └── survey_tools.py
+└── storage/
+    ├── __init__.py
+    └── json_storage.py
+```
 
 ## Data Structures
 
@@ -17,15 +39,17 @@ class QuestionType(Enum):
 @dataclass
 class Question:
     id: str
-    name: str
+    text: str
+    type: QuestionType
     position: int
-    survey_id: str
-    question_type: QuestionType
+    options: List[str]  # For RADIO, MULTIPLE_CHOICE, SINGLE_CHOICE
+    survey_id: Optional[str]
 
 @dataclass
 class Survey:
     id: str
     name: str
+    description: str
     questions: List[Question]
 
 @dataclass
@@ -35,100 +59,80 @@ class SurveyContext:
     surveys: List[Survey] = field(default_factory=list)
 ```
 
-## Agent Architecture
-
-### 1. Triage Agent
-- **Purpose**: Initial point of contact and routing
-- **Responsibilities**:
-  - Present initial options to user
-  - Route to appropriate specialized agent
-  - Handle basic user interaction
-- **Tools**:
-  - `list_surveys`: Show available surveys
-  - `create_new_survey`: Initiate new survey creation
-  - `edit_existing_survey`: Start survey editing process
-
-### 2. Survey Creation Agent
-- **Purpose**: Generate new surveys
-- **Responsibilities**:
-  - Get survey requirements from user
-  - Generate appropriate questions
-  - Create complete survey structure
-- **Tools**:
-  - `create_survey`: Create new survey instance
-  - `add_question`: Add questions to survey
-  - `save_survey`: Persist survey data
-
-### 3. Survey Editor Agent
-- **Purpose**: Modify existing surveys
-- **Responsibilities**:
-  - Show available surveys
-  - Handle survey selection
-  - Manage question operations
-- **Tools**:
-  - `list_surveys`: Show available surveys
-  - `select_survey`: Choose survey to edit
-  - `add_question`: Add new questions
-  - `edit_question`: Modify existing questions
-
-### 4. Question Editor Agent
-- **Purpose**: Handle individual question modifications
-- **Responsibilities**:
-  - Modify question parameters
-  - Change question types
-  - Update question positions
-- **Tools**:
-  - `edit_question_params`: Update question properties
-  - `change_question_type`: Modify question type
-  - `update_position`: Change question order
-
 ## Implementation Phases
 
 ### Phase 1: Foundation
-1. Set up project structure
-2. Implement data models
-3. Create context management system
-4. Implement basic validation
+1. **Data Models** (models/survey.py)
+   - Implement QuestionType enum
+   - Implement Question dataclass
+   - Implement Survey dataclass
+   - Implement SurveyContext dataclass
 
-### Phase 2: Core Agents
-1. Implement Triage Agent
-2. Create basic routing system
-3. Implement Survey Creation Agent
-4. Add basic survey persistence
+2. **Storage System** (storage/json_storage.py)
+   - Implement JsonStorage class
+   - Basic CRUD operations for surveys
+   - JSON serialization/deserialization
+   - File-based storage (one survey per file)
 
-### Phase 3: Editing Capabilities
-1. Implement Survey Editor Agent
-2. Add Question Editor Agent
-3. Implement question modification tools
-4. Add survey listing and selection
+### Phase 2: Tools Implementation
+1. **Survey Tools** (tools/survey_tools.py)
+   - `list_surveys`: Show available surveys
+   - `create_survey`: Create new survey
+   - `add_question`: Add question to survey
+   - `edit_question`: Modify existing question
+   - `save_survey`: Persist survey changes
+   - `load_survey`: Load survey from storage
 
-### Phase 4: Integration
-1. Connect all agents
-2. Implement state management
-3. Add basic error handling
-4. Test complete workflow
+### Phase 3: Agent Implementation
+1. **Triage Agent** (agents/triage_agent.py)
+   - Initial point of contact
+   - Direct communication with other agents
+   - Basic routing logic
+   - Tools: list_surveys
 
-## Technical Decisions
+2. **Survey Creation Agent** (agents/survey_creation_agent.py)
+   - Survey creation workflow
+   - Question type selection
+   - Tools: create_survey, add_question, save_survey
 
-### State Management
-- Using `SurveyContext` for maintaining state between agent interactions
-- Context includes current survey, current question, and list of all surveys
-- State is passed through the `RunContextWrapper` system
+3. **Survey Editor Agent** (agents/survey_editor_agent.py)
+   - Survey modification workflow
+   - Question management
+   - Tools: load_survey, save_survey
 
-### Data Persistence
-- Initially using in-memory storage
-- Future consideration for database integration
+4. **Question Editor Agent** (agents/question_editor_agent.py)
+   - Question modification workflow
+   - Question type changes
+   - Tools: edit_question
 
-### Validation Rules
-- Basic validation for required fields
-- Question type-specific validation
-- Position validation within survey
+### Phase 4: CLI Interface
+1. **Main Application** (main.py)
+   - CLI menu system
+   - Agent orchestration
+   - User interaction handling
+
+## Agent Communication Pattern
+- Direct agent-to-agent communication
+- Each agent can communicate with any other agent
+- Triage agent acts as the main coordinator
+- Agents can hand off tasks to each other
+
+## Storage Implementation
+- JSON-based file storage
+- One survey per file
+- Basic file operations (read/write)
+- No auto-save (explicit save commands only)
+
+## Validation Rules
+- Question structure validation
+- Survey structure validation
+- Basic error handling for invalid inputs
 
 ## Next Steps
-1. Create basic project structure
-2. Implement data models
-3. Set up context management
-4. Begin Triage Agent implementation
+1. Review and approve this plan
+2. Begin with Phase 1 implementation
+3. Implement one component at a time
+4. Test each component before moving to the next
 
 ## Future Considerations
 1. Database integration
