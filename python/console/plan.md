@@ -5,22 +5,11 @@ This document outlines the implementation plan for a multi-agent system designed
 
 ## Project Structure
 ```
-survey_designer/
-├── __init__.py
+console/
 ├── main.py
-├── models/
-│   ├── __init__.py
-│   └── survey.py
-├── agents/
-│   ├── __init__.py
-│   ├── triage_agent.py
-│   ├── survey_generator_agent.py
-│   └── survey_editor_agent.py
-├── tools/
-│   ├── __init__.py
-│   └── survey_tools.py
+├── models.py
+├── agents.py
 └── storage/
-    ├── __init__.py
     └── json_storage.py
 ```
 
