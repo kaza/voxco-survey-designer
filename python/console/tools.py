@@ -1,5 +1,5 @@
-from typing import List, Optional
-from .models import Survey, Question, QuestionType
+from typing import List, Optional, Dict, Any
+from .models import Survey, Question, QuestionType, QuestionOptions
 from .storage.json_storage import JsonStorage
 
 class SurveyTools:
@@ -16,24 +16,34 @@ class SurveyTools:
         self.storage.save_survey(survey)
         return survey
 
-    def add_question(self, survey_id: str, text: str, question_type: QuestionType, options: List[str] = None) -> Optional[Question]:
+    def add_question(self, survey_id: str, text: str, question_type: QuestionType, 
+                    options: List[str] = None, question_options: Dict[str, Any] = None) -> Optional[Question]:
         """Add a question to a survey."""
         survey = self.storage.load_survey(survey_id)
         if not survey:
             return None
 
+        # Create QuestionOptions instance from dict if provided
+        options_instance = QuestionOptions()
+        if question_options:
+            for key, value in question_options.items():
+                if hasattr(options_instance, key):
+                    setattr(options_instance, key, value)
+
         question = Question(
             text=text,
             type=question_type,
             position=len(survey.questions),
-            options=options or []
+            options=options or [],
+            question_options=options_instance
         )
         survey.add_question(question)
         self.storage.save_survey(survey)
         return question
 
     def edit_question(self, survey_id: str, question_id: str, text: str = None, 
-                     question_type: QuestionType = None, options: List[str] = None) -> Optional[Question]:
+                     question_type: QuestionType = None, options: List[str] = None,
+                     question_options: Dict[str, Any] = None) -> Optional[Question]:
         """Edit an existing question in a survey."""
         survey = self.storage.load_survey(survey_id)
         if not survey:
@@ -49,6 +59,10 @@ class SurveyTools:
             question.type = question_type
         if options is not None:
             question.options = options
+        if question_options:
+            for key, value in question_options.items():
+                if hasattr(question.question_options, key):
+                    setattr(question.question_options, key, value)
 
         self.storage.save_survey(survey)
         return question

@@ -2,7 +2,7 @@ import json
 from typing import List, Optional
 from pathlib import Path
 
-from ..models import Survey, Question, QuestionType
+from ..models import Survey, Question, QuestionType, QuestionOptions
 
 # Note: We need manual serialization/deserialization because we're working with Python dataclasses and enums.
 # Simple JSON serialization (json.dumps()) doesn't know how to handle:
@@ -35,7 +35,25 @@ class JsonStorage:
                     "type": q.type.value,
                     "position": q.position,
                     "options": q.options,
-                    "survey_id": q.survey_id
+                    "survey_id": q.survey_id,
+                    "question_options": {
+                        "required": q.question_options.required,
+                        "randomize_choices": q.question_options.randomize_choices,
+                        "min_selections": q.question_options.min_selections,
+                        "max_selections": q.question_options.max_selections,
+                        "none_of_above": q.question_options.none_of_above,
+                        "validation_rules": q.question_options.validation_rules,
+                        "placeholder": q.question_options.placeholder,
+                        "alphabetize_choices": q.question_options.alphabetize_choices,
+                        "min_value": q.question_options.min_value,
+                        "max_value": q.question_options.max_value,
+                        "allow_decimal": q.question_options.allow_decimal,
+                        "unit": q.question_options.unit,
+                        "scale_min": q.question_options.scale_min,
+                        "scale_max": q.question_options.scale_max,
+                        "visual_style": q.question_options.visual_style,
+                        "scale_labels": q.question_options.scale_labels
+                    }
                 }
                 for q in survey.questions
             ]
@@ -54,17 +72,40 @@ class JsonStorage:
             with open(survey_path, 'r', encoding='utf-8') as f:
                 survey_data = json.load(f)
             
-            questions = [
-                Question(
+            questions = []
+            for q in survey_data["questions"]:
+                # Create QuestionOptions instance
+                options_data = q.get("question_options", {})
+                question_options = QuestionOptions(
+                    required=options_data.get("required", True),
+                    randomize_choices=options_data.get("randomize_choices", False),
+                    min_selections=options_data.get("min_selections"),
+                    max_selections=options_data.get("max_selections"),
+                    none_of_above=options_data.get("none_of_above", False),
+                    validation_rules=options_data.get("validation_rules"),
+                    placeholder=options_data.get("placeholder"),
+                    alphabetize_choices=options_data.get("alphabetize_choices", False),
+                    min_value=options_data.get("min_value"),
+                    max_value=options_data.get("max_value"),
+                    allow_decimal=options_data.get("allow_decimal", False),
+                    unit=options_data.get("unit"),
+                    scale_min=options_data.get("scale_min", 1),
+                    scale_max=options_data.get("scale_max", 5),
+                    visual_style=options_data.get("visual_style", "stars"),
+                    scale_labels=options_data.get("scale_labels")
+                )
+                
+                # Create Question instance
+                question = Question(
                     id=q["id"],
                     text=q["text"],
                     type=QuestionType(q["type"]),
                     position=q["position"],
                     options=q["options"],
-                    survey_id=q["survey_id"]
+                    survey_id=q["survey_id"],
+                    question_options=question_options
                 )
-                for q in survey_data["questions"]
-            ]
+                questions.append(question)
             
             return Survey(
                 id=survey_data["id"],

@@ -4,23 +4,19 @@ from agents import Agent, Runner, trace
 from .models import Survey, Question, QuestionType, SurveyContext
 from .tools import SurveyTools
 from . import agent_tools
+from .constants import QUESTION_TYPES_INFO
 
 # Create specialized agents
 survey_generator = Agent(
     name="Survey Generator",
-    instructions="""You create new surveys based on user requirements.
+    instructions=f"""You create new surveys based on user requirements.
     You should:
     1. Ask for survey name and description
     2. Create appropriate questions based on the survey purpose
     3. Validate question types and options
     4. Save the survey after creation
     
-    Available question types:
-    - RADIO: Multiple choice with single selection
-    - OPEN_ENDED: Free text response
-    - YES_NO: Simple yes/no question
-    - MULTIPLE_CHOICE: Multiple choice with multiple selections allowed
-    - SINGLE_CHOICE: Similar to RADIO but presented differently
+    {QUESTION_TYPES_INFO}
     """,
     tools=[
         agent_tools.create_survey,
@@ -30,19 +26,14 @@ survey_generator = Agent(
 
 survey_editor = Agent(
     name="Survey Editor",
-    instructions="""You modify existing surveys based on user requirements.
+    instructions=f"""You modify existing surveys based on user requirements.
     You should:
     1. Load the specified survey
     2. Make requested modifications to questions
     3. Validate changes
     4. Save the survey after modifications
     
-    Available question types:
-    - RADIO: Multiple choice with single selection
-    - OPEN_ENDED: Free text response
-    - YES_NO: Simple yes/no question
-    - MULTIPLE_CHOICE: Multiple choice with multiple selections allowed
-    - SINGLE_CHOICE: Similar to RADIO but presented differently
+    {QUESTION_TYPES_INFO}
     """,
     tools=[
         agent_tools.load_survey,
