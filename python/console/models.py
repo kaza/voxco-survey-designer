@@ -12,10 +12,10 @@ class QuestionType(Enum):
 
 @dataclass
 class Question:
-    id: str = field(default_factory=lambda: str(uuid.uuid4()))
     text: str
     type: QuestionType
     position: int
+    id: str = field(default_factory=lambda: str(uuid.uuid4()))
     options: List[str] = field(default_factory=list)  # For RADIO, MULTIPLE_CHOICE, SINGLE_CHOICE
     survey_id: Optional[str] = None
 
@@ -27,9 +27,9 @@ class Question:
 
 @dataclass
 class Survey:
-    id: str = field(default_factory=lambda: str(uuid.uuid4()))
     name: str
     description: str
+    id: str = field(default_factory=lambda: str(uuid.uuid4()))
     questions: List[Question] = field(default_factory=list)
 
     def add_question(self, question: Question) -> None:
