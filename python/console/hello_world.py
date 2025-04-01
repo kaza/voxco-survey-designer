@@ -1,7 +1,7 @@
 import asyncio
 import os
 from dotenv import load_dotenv
-from agents import Agent, Runner
+from survey_agents import Agent, Runner
 
 # Load environment variables from .env file
 load_dotenv()

@@ -2,6 +2,7 @@ from enum import Enum
 from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Any
 import uuid
+from pydantic import BaseModel, Field
 
 class QuestionType(Enum):
     RADIO = "Radio"
@@ -85,4 +86,5 @@ class Survey:
 class SurveyContext:
     current_survey: Optional[Survey] = None
     current_question: Optional[Question] = None
-    surveys: List[Survey] = field(default_factory=list) 
+    surveys: List[Survey] = field(default_factory=list)
+

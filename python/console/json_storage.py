@@ -2,7 +2,7 @@ import json
 from typing import List, Optional
 from pathlib import Path
 
-from ..models import Survey, Question, QuestionType, QuestionOptions
+from models import Survey, Question, QuestionType, QuestionOptions
 
 # Note: We need manual serialization/deserialization because we're working with Python dataclasses and enums.
 # Simple JSON serialization (json.dumps()) doesn't know how to handle:

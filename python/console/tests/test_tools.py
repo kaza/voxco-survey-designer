@@ -1,10 +1,9 @@
 import unittest
 import tempfile
 import shutil
-from pathlib import Path
 
-from ..models import Survey, Question, QuestionType
-from ..storage.json_storage import JsonStorage
+from ..models import QuestionType
+from json_storage import JsonStorage
 from ..tools import SurveyTools
 
 class TestSurveyTools(unittest.TestCase):

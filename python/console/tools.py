@@ -1,6 +1,6 @@
 from typing import List, Optional, Dict, Any
-from .models import Survey, Question, QuestionType, QuestionOptions
-from .storage.json_storage import JsonStorage
+from models import Survey, Question, QuestionType, QuestionOptions
+from json_storage import JsonStorage
 
 class SurveyTools:
     def __init__(self, storage: JsonStorage):

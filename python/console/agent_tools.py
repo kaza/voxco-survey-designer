@@ -1,7 +1,9 @@
 from typing import List, Optional, Dict, Any
+
 from agents import function_tool
-from .models import Survey, Question, QuestionType
-from .tools import SurveyTools
+
+from models import Survey, Question, QuestionType
+from tools import SurveyTools
 
 # Global tools instance - will be set by main.py
 _tools: Optional[SurveyTools] = None
@@ -163,4 +165,76 @@ def load_survey(survey_id: str) -> dict:
             }
             for q in survey.questions
         ]
+    }
+
+@function_tool
+def question_structure_validator(question_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Validate the structure of a parsed question.
+    
+    Args:
+        question_data: Dictionary containing the parsed question data with fields:
+            - text: Question text
+            - type: Question type
+            - options: List of options (if applicable)
+            - question_options: Dictionary of question-specific options
+    
+    Returns:
+        Dictionary containing:
+            - is_valid: Boolean indicating if the structure is valid
+            - errors: List of error messages (if any)
+            - suggestions: List of suggestions for improvement (if any)
+    """
+    errors = []
+    suggestions = []
+    
+    # Validate required fields
+    if not question_data.get("text"):
+        errors.append("Question text is required")
+    
+    if not question_data.get("type"):
+        errors.append("Question type is required")
+    else:
+        try:
+            question_type = QuestionType(question_data["type"])
+        except ValueError:
+            errors.append(f"Invalid question type: {question_data['type']}")
+    
+    # Validate options based on question type
+    if question_data.get("type") in ["RADIO", "MULTIPLE_CHOICE", "DROP_DOWN"]:
+        if not question_data.get("options"):
+            errors.append(f"Options are required for {question_data['type']} type questions")
+        elif len(question_data["options"]) < 2:
+            errors.append(f"At least 2 options are required for {question_data['type']} type questions")
+    
+    # Validate question options
+    options = question_data.get("question_options", {})
+    
+    # Validate numeric options
+    if question_data.get("type") == "NUMERIC":
+        if options.get("min_value") is not None and options.get("max_value") is not None:
+            if options["min_value"] > options["max_value"]:
+                errors.append("min_value cannot be greater than max_value")
+        if options.get("allow_decimal") and options.get("min_value") is not None:
+            if not float(options["min_value"]).is_integer():
+                suggestions.append("Consider setting allow_decimal to False for integer-only ranges")
+    
+    # Validate rating options
+    if question_data.get("type") == "RATING":
+        if options.get("scale_min", 1) >= options.get("scale_max", 5):
+            errors.append("scale_min must be less than scale_max")
+        if options.get("visual_style") not in ["stars", "slider"]:
+            suggestions.append("visual_style should be either 'stars' or 'slider'")
+    
+    # Validate multiple choice options
+    if question_data.get("type") == "MULTIPLE_CHOICE":
+        if options.get("min_selections") is not None and options.get("max_selections") is not None:
+            if options["min_selections"] > options["max_selections"]:
+                errors.append("min_selections cannot be greater than max_selections")
+            if options["min_selections"] > len(question_data.get("options", [])):
+                errors.append("min_selections cannot be greater than the number of options")
+    
+    return {
+        "is_valid": len(errors) == 0,
+        "errors": errors,
+        "suggestions": suggestions
     } 
