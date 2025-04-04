@@ -1,20 +1,14 @@
 import asyncio
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from agents import Agent, Runner, trace, function_tool
 
-from agent_tools import  list_surveys, edit_question, delete_question, set_tools
+from agent_tools import  list_surveys, edit_question, delete_question, set_tools, create_survey, add_question
 from models import Survey, Question, QuestionType, SurveyContext
 from tools import SurveyTools
 # import agent_tools
 from constants import QUESTION_TYPES_INFO
-from pydantic import BaseModel, Field
 
 # Create specialized agents first to avoid forward references
-class QuestionParserOutput(BaseModel):
-    text: str = Field(description="The text of the question")
-    question_type: str = Field(description="The type of question (RADIO, MULTIPLE_CHOICE, etc.)")
-    options: Optional[List[str]] = Field(default=None, description="Options for choice-based questions")
-    question_options: dict = Field(default_factory=dict, description="Additional options for the question")
 
 question_parser = Agent(
     name="Question Parser",
@@ -34,8 +28,7 @@ question_parser = Agent(
     {{
         "text": "Did you find our website easy to navigate?",
         "question_type": "RADIO",
-        "options": ["Yes", "No"],
-        "question_options": {{"required": true}}
+        "options": ["Yes", "No"]
     }}
     
     Input: "Which features do you currently use on our platform? (You can select more than one)
@@ -47,8 +40,7 @@ question_parser = Agent(
     {{
         "text": "Which features do you currently use on our platform?",
         "question_type": "MULTIPLE_CHOICE",
-        "options": ["Dashboard", "Notifications", "File Sharing", "Analytics"],
-        "question_options": {{"required": true}}
+        "options": ["Dashboard", "Notifications", "File Sharing", "Analytics"]
     }}
     
     Input: "Approximately how many hours per week do you use our platform? (Please enter a number)"
@@ -56,13 +48,13 @@ question_parser = Agent(
     {{
         "text": "Approximately how many hours per week do you use our platform?",
         "question_type": "NUMERIC",
-        "question_options": {{"required": true, "min_value": 0}}
+        "options": []
     }}
     
     {QUESTION_TYPES_INFO}
     """,
     #tools=[agent_tools.add_question],
-    output_type=QuestionParserOutput
+    output_type=str  # Use string output type instead of Dict
 )
 
 survey_parser = Agent(
@@ -73,16 +65,17 @@ survey_parser = Agent(
     2. Split the input text into individual questions
     3. For each question:
        - Send the question text to the question_parser agent
-       - Receive the structured question data
-       - Call add_question with the parsed data
-    4. Ensure all questions are properly parsed before completing
+       - Receive the structured question data as a JSON string
+       - Parse the JSON string and call add_question with the parsed data
+    4. Return a simple JSON string with survey information when complete
     
     The input will be a complete survey with multiple questions. You must process each one separately.
     
     {QUESTION_TYPES_INFO}
     """,
-
-    handoffs=[question_parser]
+    handoffs=[question_parser],
+    tools=[create_survey, add_question],
+    output_type=str  # Use string output type instead of Dict
 )
 
 survey_generator = Agent(
