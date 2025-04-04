@@ -1,9 +1,13 @@
 from typing import List, Optional, Dict, Any
+import logging
 
-from agents import function_tool
+from agents import function_tool, RunContextWrapper
 
-from models import Survey, Question, QuestionType
+from models import Survey, Question, QuestionType, SurveyContext
 from tools import SurveyTools
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 # Global tools instance - will be set by main.py
 _tools: Optional[SurveyTools] = None
@@ -20,26 +24,39 @@ def list_surveys() -> List[dict]:
     return [{"id": s.id, "name": s.name, "description": s.description} for s in surveys]
 
 @function_tool
-def create_survey(name: str, description: str) -> dict:
+def create_survey(wrapper: RunContextWrapper[SurveyContext], name: str, description: str) -> dict:
     """Create a new survey."""
+    logger.debug(f"### Creating new survey with name: '{name}' and description: '{description}'")
+    
     survey = _tools.create_survey(name=name, description=description)
-    return {
-        "id": survey.id,
-        "name": survey.name,
-        "description": survey.description
-    }
+    
+    logger.debug(f"Survey created with ID: {survey.id}")
+    logger.debug(f"Current surveys count: {len(_tools.list_surveys())}")
+    
+    if wrapper is not None and wrapper.context is not None:
+        logger.debug(f"Adding survey to context and setting as current survey")
+        context = wrapper.context
+        context.surveys.append(survey)
+        context.current_survey = survey
+    else:
+        logger.warning(f"### WARNING: Could not update context with survey")
+    
+    return survey
 
 @function_tool
-def add_question(survey_id: str, text: str, question_type: str, 
-                options: List[str] = None) -> dict:
+def add_question(wrapper: RunContextWrapper[SurveyContext], survey_id: str, text: str, 
+                question_type: str, options: List[str] = None) -> dict:
     """Add a question to a survey.
     
     Args:
+        wrapper: Context wrapper for updating the context
         survey_id: ID of the survey to add the question to
         text: The question text
         question_type: Type of question (Radio, OpenEnded, MultipleChoice, DropDown, Numeric, Rating)
         options: List of options for choice-based questions
     """
+    logger.debug(f"### Adding question to survey {survey_id}: '{text}'")
+    
     # Create basic question options
     question_options = {
         "required": True,
@@ -63,6 +80,36 @@ def add_question(survey_id: str, text: str, question_type: str,
         "options": question.options
     }
     
+    # Update the context if provided
+    if wrapper is not None and wrapper.context is not None:
+        logger.debug(f"Updating context with new question")
+        context = wrapper.context
+        
+        # Find the survey in the context
+        for survey in context.surveys:
+            if survey.id == survey_id:
+                logger.debug(f"Found survey in context, updating questions")
+                # Update the survey with the new question
+                # The question is already added to the survey in the storage,
+                # but we need to refresh the context's copy
+                updated_survey = _tools.load_survey(survey_id)
+                if updated_survey:
+                    # Replace the survey in the context
+                    for i, s in enumerate(context.surveys):
+                        if s.id == survey_id:
+                            context.surveys[i] = updated_survey
+                            if context.current_survey and context.current_survey.id == survey_id:
+                                context.current_survey = updated_survey
+                            break
+                    logger.debug(f"Context updated with question ID: {question.id}")
+                else:
+                    logger.debug(f"### WARNING: Could not load updated survey")
+        else:
+            logger.debug(f"### WARNING: Survey ID {survey_id} not found in context")
+    else:
+        logger.debug(f"### WARNING: Could not update context with question")
+    
+    logger.debug(f"Question added successfully: {question.id}")
     return result
 
 @function_tool
@@ -187,4 +234,5 @@ def question_structure_validator(question_data: str) -> str:
         "is_valid": len(errors) == 0,
         "errors": errors,
         "suggestions": suggestions
-    }) 
+    })
+
