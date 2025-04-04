@@ -4,6 +4,7 @@ import tempfile
 import shutil
 import sys
 import os
+import logging
 from dotenv import load_dotenv
 
 from agents import Runner
@@ -17,6 +18,14 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 from models import SurveyContext, QuestionType
 from tools import SurveyTools
 from json_storage import JsonStorage
+
+# Configure logging for OpenAI Agents SDK
+logger = logging.getLogger("openai.agents")  # Use "openai.agents.tracing" for tracing logs
+logger.setLevel(logging.DEBUG)
+handler = logging.StreamHandler()  # Or use `logging.FileHandler("logfile.log")`
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
 class TestSurveyParser(unittest.TestCase):
     def setUp(self):
@@ -54,9 +63,15 @@ Analytics
 Approximately how many hours per week do you use our platform?
 (Please enter a number)
 """
-        
+
+        text_small = """We'd love to hear your thoughts! Please take a moment to answer these questions:
+
+Did you find our website easy to navigate?
+(Yes / No)
+"""
+
         # Run the parser on the survey text asynchronously
-        result = asyncio.run(self._run_parser(survey_text))
+        result = asyncio.run(self._run_parser(text_small))
         
         # Check surveys in storage
         surveys = self.storage.list_surveys()
