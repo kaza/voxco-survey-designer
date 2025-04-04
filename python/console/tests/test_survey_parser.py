@@ -4,6 +4,7 @@ import tempfile
 import shutil
 import sys
 import os
+from dotenv import load_dotenv
 
 from agents import Runner
 
@@ -19,6 +20,13 @@ from json_storage import JsonStorage
 
 class TestSurveyParser(unittest.TestCase):
     def setUp(self):
+        # Load environment variables from .env file
+        load_dotenv()
+        
+        # Verify OpenAI API key is set
+        if not os.getenv("OPENAI_API_KEY"):
+            raise ValueError("OPENAI_API_KEY not found in environment variables. Please set it in the .env file.")
+            
         # Create a temporary directory for storing survey data during tests
         self.temp_dir = tempfile.mkdtemp()
         self.storage = JsonStorage(self.temp_dir)

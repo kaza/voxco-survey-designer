@@ -1,4 +1,4 @@
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict
 
 from agents import function_tool
 
@@ -31,7 +31,7 @@ def create_survey(name: str, description: str) -> dict:
 
 @function_tool
 def add_question(survey_id: str, text: str, question_type: str, 
-                options: List[str] = None, question_options: Dict[str, Any] = None) -> dict:
+                options: List[str] = None, question_options: Dict[str, str] = None) -> dict:
     """Add a question to a survey.
     
     Args:
@@ -77,7 +77,7 @@ def add_question(survey_id: str, text: str, question_type: str,
 @function_tool
 def edit_question(survey_id: str, question_id: str, text: str = None, 
                  question_type: str = None, options: List[str] = None,
-                 question_options: Dict[str, Any] = None) -> dict:
+                 question_options: Dict[str,str] = None) -> dict:
     """Edit an existing question.
     
     Args:
@@ -168,7 +168,7 @@ def load_survey(survey_id: str) -> dict:
     }
 
 @function_tool
-def question_structure_validator(question_data: Dict[str, Any]) -> Dict[str, Any]:
+def question_structure_validator(question_data: Dict[str, str]) -> Dict[str, str]:
     """Validate the structure of a parsed question.
     
     Args:

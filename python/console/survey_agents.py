@@ -2,7 +2,7 @@ import asyncio
 from typing import Optional, List
 from agents import Agent, Runner, trace, function_tool
 
-from agent_tools import  list_surveys, edit_question, delete_question, set_tools
+from agent_tools import  list_surveys, edit_question, delete_question, set_tools, create_survey, add_question
 from models import Survey, Question, QuestionType, SurveyContext
 from tools import SurveyTools
 # import agent_tools
@@ -15,6 +15,13 @@ class QuestionParserOutput(BaseModel):
     question_type: str = Field(description="The type of question (RADIO, MULTIPLE_CHOICE, etc.)")
     options: Optional[List[str]] = Field(default=None, description="Options for choice-based questions")
     question_options: dict = Field(default_factory=dict, description="Additional options for the question")
+
+# Add SurveyParserOutput class
+class SurveyParserOutput(BaseModel):
+    survey_id: str = Field(description="The ID of the created survey")
+    name: str = Field(description="The name of the survey")
+    description: str = Field(description="The description of the survey")
+    question_count: int = Field(description="The number of questions parsed")
 
 question_parser = Agent(
     name="Question Parser",
@@ -81,8 +88,9 @@ survey_parser = Agent(
     
     {QUESTION_TYPES_INFO}
     """,
-
-    handoffs=[question_parser]
+    handoffs=[question_parser],
+    tools=[create_survey, add_question],
+    output_type=SurveyParserOutput
 )
 
 survey_generator = Agent(

@@ -6,6 +6,11 @@ from survey_agents import Agent, Runner
 # Load environment variables from .env file
 load_dotenv()
 
+# Debug: Print current working directory and environment variable
+print(f"Current working directory: {os.getcwd()}")
+print(f"OPENAI_API_KEY present: {'OPENAI_API_KEY' in os.environ}")
+print(f"OPENAI_API_KEY length: {len(os.getenv('OPENAI_API_KEY', ''))}")
+
 async def main():
     # Check if API key is set
     if not os.getenv("OPENAI_API_KEY"):
