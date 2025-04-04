@@ -50,7 +50,7 @@ question_parser = Agent[SurveyContext](
     
     {QUESTION_TYPES_INFO}
     """,
-    # tools=[agent_tools.add_question],
+    tools=[add_question],
     output_type=str  # Use string output type instead of Dict
 )
 

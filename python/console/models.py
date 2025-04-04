@@ -48,26 +48,26 @@ class Question:
     type: QuestionType
     position: int
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    options: List[str] = field(default_factory=list)  # For RADIO, MULTIPLE_CHOICE, DROP_DOWN
-    question_options: QuestionOptions = field(default_factory=QuestionOptions)
-    survey_id: Optional[str] = None
+    # options: List[str] = field(default_factory=list)  # For RADIO, MULTIPLE_CHOICE, DROP_DOWN
+    # question_options: QuestionOptions = field(default_factory=QuestionOptions)
+    # survey_id: Optional[str] = None
 
-    def __post_init__(self):
-        # Validate that choice-based questions have options
-        if self.type in [QuestionType.RADIO, QuestionType.MULTIPLE_CHOICE, QuestionType.DROP_DOWN]:
-            if not self.options:
-                raise ValueError(f"Question type {self.type} requires options")
+    # def __post_init__(self):
+    #     # Validate that choice-based questions have options
+    #     if self.type in [QuestionType.RADIO, QuestionType.MULTIPLE_CHOICE, QuestionType.DROP_DOWN]:
+    #         if not self.options:
+    #             raise ValueError(f"Question type {self.type} requires options")
         
-        # Validate numeric options
-        if self.type == QuestionType.NUMERIC:
-            if self.question_options.min_value is not None and self.question_options.max_value is not None:
-                if self.question_options.min_value > self.question_options.max_value:
-                    raise ValueError("min_value cannot be greater than max_value")
+    #     # Validate numeric options
+    #     if self.type == QuestionType.NUMERIC:
+    #         if self.question_options.min_value is not None and self.question_options.max_value is not None:
+    #             if self.question_options.min_value > self.question_options.max_value:
+    #                 raise ValueError("min_value cannot be greater than max_value")
         
-        # Validate rating scale
-        if self.type == QuestionType.RATING:
-            if self.question_options.scale_min >= self.question_options.scale_max:
-                raise ValueError("scale_min must be less than scale_max")
+    #     # Validate rating scale
+    #     if self.type == QuestionType.RATING:
+    #         if self.question_options.scale_min >= self.question_options.scale_max:
+    #             raise ValueError("scale_min must be less than scale_max")
 
 @dataclass
 class Survey:

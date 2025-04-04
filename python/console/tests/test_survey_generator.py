@@ -9,7 +9,9 @@ from agent_tools import create_survey, add_question
 
 # Setup logging
 logger = logging.getLogger(__name__)
-setup_logging()
+# We'll let the test runner set up logging or do it here if running directly
+if __name__ == "__main__":
+    setup_logging()
 
 class TestSurveyGenerator(BaseAgentTest, unittest.TestCase):
     def test_survey_context_creates_survey(self):

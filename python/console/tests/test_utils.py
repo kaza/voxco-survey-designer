@@ -17,25 +17,43 @@ import agent_tools
 def setup_logging():
     # Configure logging for all loggers
     logging.basicConfig(
-        level=logging.DEBUG,
+        level=logging.INFO,  # Changed from DEBUG to INFO for the base level
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         handlers=[
             logging.StreamHandler()
         ]
     )
     
-    # Set up specific loggers
+    # Set up specific loggers for our application
     loggers = [
+        "agent_tools",  # Our agent tools
+    ]
+    
+    # Set all other loggers to ERROR level to disable debug and info messages
+    disabled_loggers = [
         "openai.agents",  # Main agents logger
         "openai.agents.tracing",  # Tracing logs
+        "openai._base_client",  # OpenAI HTTP client
+        "httpcore",  # HTTP client library
+        "httpx",  # HTTP client library
         "__main__",  # Main module
-        "agent_tools",  # Our agent tools
         "test_survey_generator",  # Our test module
+        "asyncio"  # Added asyncio to suppress those logs
     ]
     
     for logger_name in loggers:
         logger = logging.getLogger(logger_name)
         logger.setLevel(logging.DEBUG)
+        
+    # Disable unwanted loggers by setting higher log level
+    for logger_name in disabled_loggers:
+        logger = logging.getLogger(logger_name)
+        logger.setLevel(logging.ERROR)  # Changed from WARNING to ERROR to silence even more logs
+    
+    # Explicitly silence the most verbose loggers
+    logging.getLogger("openai.agents").setLevel(logging.ERROR)
+    logging.getLogger("httpcore").setLevel(logging.ERROR)
+    logging.getLogger("httpx").setLevel(logging.ERROR)
         
     return logging.getLogger("openai.agents")
 

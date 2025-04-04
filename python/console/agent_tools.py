@@ -44,7 +44,38 @@ def create_survey(wrapper: RunContextWrapper[SurveyContext], name: str, descript
     return survey
 
 @function_tool
-def add_question(wrapper: RunContextWrapper[SurveyContext], survey_id: str, text: str, 
+def add_question(wrapper: RunContextWrapper[SurveyContext], question: Question) -> str:
+    """Add a pre-generated question to a survey.
+    
+    This can be used when a question is generated and needs to be stored to the database and context.
+    
+    Args:
+        wrapper: Context wrapper for updating the context
+        question: The Question object to add
+        
+    Returns:
+        A message indicating success
+        
+    Raises:
+        ValueError: If the context in wrapper is None
+    """
+    if wrapper is None or wrapper.context is None:
+        raise ValueError("Context cannot be None. Must provide a valid SurveyContext.")
+    
+    context = wrapper.context
+    logger.info(f"add_question: {question}")
+       # Load survey, add question, and save
+    survey = _tools.load_survey(question.survey_id)
+    if not survey:
+        raise ValueError(f"Survey with ID {question.survey_id} not found")
+    
+    survey.add_question(question)
+    _tools.save_survey(survey)
+    
+    
+    return f"Question '{question.id}' successfully added to survey and stored in database."
+
+def xxx_old_add_question(wrapper: RunContextWrapper[SurveyContext], survey_id: str, text: str, 
                 question_type: str, options: List[str] = None) -> dict:
     """Add a question to a survey.
     
@@ -82,34 +113,9 @@ def add_question(wrapper: RunContextWrapper[SurveyContext], survey_id: str, text
     
     # Update the context if provided
     if wrapper is not None and wrapper.context is not None:
-        logger.debug(f"Updating context with new question")
         context = wrapper.context
-        
-        # Find the survey in the context
-        for survey in context.surveys:
-            if survey.id == survey_id:
-                logger.debug(f"Found survey in context, updating questions")
-                # Update the survey with the new question
-                # The question is already added to the survey in the storage,
-                # but we need to refresh the context's copy
-                updated_survey = _tools.load_survey(survey_id)
-                if updated_survey:
-                    # Replace the survey in the context
-                    for i, s in enumerate(context.surveys):
-                        if s.id == survey_id:
-                            context.surveys[i] = updated_survey
-                            if context.current_survey and context.current_survey.id == survey_id:
-                                context.current_survey = updated_survey
-                            break
-                    logger.debug(f"Context updated with question ID: {question.id}")
-                else:
-                    logger.debug(f"### WARNING: Could not load updated survey")
-        else:
-            logger.debug(f"### WARNING: Survey ID {survey_id} not found in context")
-    else:
-        logger.debug(f"### WARNING: Could not update context with question")
-    
-    logger.debug(f"Question added successfully: {question.id}")
+        if context.current_survey and context.current_survey.id == survey_id:
+            context.current_survey = _tools.load_survey(survey_id)
     return result
 
 @function_tool
