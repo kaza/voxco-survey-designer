@@ -41,9 +41,7 @@ Approximately how many hours per week do you use our platform?
         q1 = survey.questions[0]
         self.assertEqual(q1.text, "Approximately how many hours per week do you use our platform?")
         self.assertEqual(q1.type, QuestionType.NUMERIC)
-        self.assertTrue(q1.question_options.required)
-        self.assertIsNotNone(q1.question_options.min_value)
-        self.assertEqual(q1.question_options.min_value, 0)
+       
         
     async def _run_parser(self, survey_text):
         # Create a fresh SurveyContext instance

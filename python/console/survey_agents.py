@@ -9,49 +9,30 @@ from models import SurveyContext
 
 question_parser = Agent[SurveyContext](
     name="Question Parser",
-    instructions=f"""You are a specialized agent that parses individual survey questions into structured format.
+    instructions=f"""You are a specialized agent that parses individual survey questions into a structured `Question` object.
     You should:
-    1. Analyze a single question text and its context
-    2. Identify the most appropriate question type based on:
-       - Content
-       - Available options
-       - Validation requirements
-    3. Convert the question into the appropriate structured format
-    
-    Example inputs and expected outputs:
-    
+    1. Analyze the raw question text provided as input.
+    2. Identify the most appropriate `QuestionType` enum value (e.g., `QuestionType.RADIO`, `QuestionType.NUMERIC`).
+    3. Extract the question text and any options (if applicable).
+    4. Determine the correct `position` for the new question based on the current number of questions in the survey (e.g., if 0 questions exist, position is 0).
+    5. Construct a `Question` object using the parsed `text`, `type`, `options`, and `position`. Ensure `survey_id` is set from `context.current_survey.id`.
+    6. Use the `add_question` tool, passing the fully constructed `Question` object.
+    7. After the tool call succeeds, return a confirmation message in the format: "Question '[question.text]' of type '[question.type.value]' created."
+
+    Example:
     Input: "Did you find our website easy to navigate? (Yes / No)"
-    Output: 
-    {{
-        "text": "Did you find our website easy to navigate?",
-        "question_type": "RADIO",
-        "options": ["Yes", "No"]
-    }}
-    
-    Input: "Which features do you currently use on our platform? (You can select more than one)
-    Dashboard
-    Notifications
-    File Sharing
-    Analytics"
-    Output:
-    {{
-        "text": "Which features do you currently use on our platform?",
-        "question_type": "MULTIPLE_CHOICE",
-        "options": ["Dashboard", "Notifications", "File Sharing", "Analytics"]
-    }}
-    
+    Action: Construct `Question(text='Did you find our website easy to navigate?', type=QuestionType.RADIO, options=['Yes', 'No'], position=0, survey_id='xyz')`. Call `add_question(question=...)`.
+    Output: "Question 'Did you find our website easy to navigate?' of type 'Radio' created."
+
+    Example:
     Input: "Approximately how many hours per week do you use our platform? (Please enter a number)"
-    Output:
-    {{
-        "text": "Approximately how many hours per week do you use our platform?",
-        "question_type": "NUMERIC",
-        "options": []
-    }}
-    
+    Action: Construct `Question(text='Approximately how many hours per week do you use our platform?', type=QuestionType.NUMERIC, options=[], position=2, survey_id='abc')`. Call `add_question(question=...)`.
+    Output: "Question 'Approximately how many hours per week do you use our platform?' of type 'Numeric' created."
+
     {QUESTION_TYPES_INFO}
     """,
     tools=[add_question],
-    output_type=str  # Use string output type instead of Dict
+    output_type=str
 )
 
 survey_parser = Agent[SurveyContext](

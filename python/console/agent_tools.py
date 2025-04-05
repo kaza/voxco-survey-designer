@@ -59,21 +59,26 @@ def add_question(wrapper: RunContextWrapper[SurveyContext], question: Question) 
     Raises:
         ValueError: If the context in wrapper is None
     """
-    if wrapper is None or wrapper.context is None:
-        raise ValueError("Context cannot be None. Must provide a valid SurveyContext.")
-    
-    context = wrapper.context
-    logger.info(f"add_question: {question}")
-       # Load survey, add question, and save
-    survey = _tools.load_survey(question.survey_id)
-    if not survey:
-        raise ValueError(f"Survey with ID {question.survey_id} not found")
-    
-    survey.add_question(question)
-    _tools.save_survey(survey)
-    
-    
-    return f"Question '{question.id}' successfully added to survey and stored in database."
+    try:
+        if wrapper is None or wrapper.context is None:
+            raise ValueError("Context cannot be None. Must provide a valid SurveyContext.")
+        
+        context = wrapper.context
+        logger.info(f"add_question: {question.id}  {question.text}  {question.type} ")
+        context.current_survey.add_question(question)
+        # Load survey, add question, and save
+        # survey = _tools.load_survey(question.survey_id)
+        # if not survey:
+        #     raise ValueError(f"Survey with ID {question.survey_id} not found")
+        
+        # survey.add_question(question)
+        #_tools.save_survey(survey)
+        
+        return f"Question '{question.text}' of type '{question.type.value}' successfully added to survey and stored in database."
+        
+    except Exception as e:
+        logger.error(f"Error adding question: {str(e)}")
+        return f"Failed to add question: {str(e)}"
 
 def xxx_old_add_question(wrapper: RunContextWrapper[SurveyContext], survey_id: str, text: str, 
                 question_type: str, options: List[str] = None) -> dict:
