@@ -32,7 +32,8 @@ question_parser = Agent[SurveyContext](
     {QUESTION_TYPES_INFO}
     """,
     tools=[add_question],
-    output_type=str
+    output_type=str,
+    model="gpt-4o-mini"
 )
 
 survey_parser = Agent[SurveyContext](
