@@ -12,45 +12,43 @@ class QuestionType(Enum):
     NUMERIC = "Numeric"
     RATING = "Rating"
 
-@dataclass
-class QuestionOptions:
+class QuestionOptions(BaseModel):
     # Common options
-    required: bool = True
-    randomize_choices: bool = False
-    
-    # Multiple choice specific
+    required: bool = Field()
+    randomize_choices: bool = Field()
+    none_of_above: bool = Field()
+    # # Multiple choice specific
     min_selections: Optional[int] = None
     max_selections: Optional[int] = None
-    none_of_above: bool = False
+
+    # # Open ended specific
+    validation_rules: Optional[Dict[str, str]] = None  # e.g., {"min_length": 10, "max_length": 500}
     
-    # Open ended specific
-    validation_rules: Optional[Dict[str, Any]] = None  # e.g., {"min_length": 10, "max_length": 500}
+    # # Drop down specific
+    # placeholder: Optional[str] = None
+    # alphabetize_choices: bool = False
     
-    # Drop down specific
-    placeholder: Optional[str] = None
-    alphabetize_choices: bool = False
+    # # Numeric specific
+    # min_value: Optional[float] = None
+    # max_value: Optional[float] = None
+    # allow_decimal: bool = False
+    # unit: Optional[str] = None
     
-    # Numeric specific
-    min_value: Optional[float] = None
-    max_value: Optional[float] = None
-    allow_decimal: bool = False
-    unit: Optional[str] = None
-    
-    # Rating specific
-    scale_min: int = 1
-    scale_max: int = 5
-    visual_style: str = "stars"  # or "slider"
-    scale_labels: Optional[Dict[str, str]] = None  # e.g., {"min": "Poor", "max": "Excellent"}
+    # # Rating specific
+    # scale_min: int = 1
+    # scale_max: int = 5
+    # visual_style: str = "stars"  # or "slider"
+    # scale_labels: Optional[Dict[str, str]] = None  # e.g., {"min": "Poor", "max": "Excellent"}
 
 @dataclass
 class Question:
     text: str
     type: QuestionType
     position: int
+    question_options: QuestionOptions 
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     # options: List[str] = field(default_factory=list)  # For RADIO, MULTIPLE_CHOICE, DROP_DOWN
-    # question_options: QuestionOptions = field(default_factory=QuestionOptions)
-    # survey_id: Optional[str] = None
+    survey_id: Optional[str] = None
 
     # def __post_init__(self):
     #     # Validate that choice-based questions have options
