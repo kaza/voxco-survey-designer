@@ -17,6 +17,7 @@ class QuestionOptions(BaseModel):
     required: bool = Field()
     randomize_choices: bool = Field()
     none_of_above: bool = Field()
+    alphabetize_choices: bool = Field(default_factory=lambda: False)
     # # Multiple choice specific
     min_selections: Optional[int] = None
     max_selections: Optional[int] = None
@@ -25,29 +26,28 @@ class QuestionOptions(BaseModel):
     validation_rules: Optional[Dict[str, str]] = None  # e.g., {"min_length": 10, "max_length": 500}
     
     # # Drop down specific
-    # placeholder: Optional[str] = None
-    # alphabetize_choices: bool = False
-    
+    placeholder: Optional[str] = None
+
     # # Numeric specific
-    # min_value: Optional[float] = None
-    # max_value: Optional[float] = None
-    # allow_decimal: bool = False
-    # unit: Optional[str] = None
+    min_value: Optional[float] = None
+    max_value: Optional[float] = None
+    allow_decimal: bool = Field(default_factory=lambda: False)
+    unit: Optional[str] = None
     
     # # Rating specific
-    # scale_min: int = 1
-    # scale_max: int = 5
-    # visual_style: str = "stars"  # or "slider"
-    # scale_labels: Optional[Dict[str, str]] = None  # e.g., {"min": "Poor", "max": "Excellent"}
+    scale_min: int = Field(default_factory=lambda: 1)
+    scale_max: int = Field(default_factory=lambda: 5)
+    visual_style: str = Field(default_factory=lambda: "stars")  # or "slider"
+    scale_labels: Optional[Dict[str, str]] = None  # e.g., {"min": "Poor", "max": "Excellent"}
 
 @dataclass
-class Question:
+class Question(BaseModel):
     text: str
     type: QuestionType
     position: int
     question_options: QuestionOptions 
-    id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    # options: List[str] = field(default_factory=list)  # For RADIO, MULTIPLE_CHOICE, DROP_DOWN
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    options: List[str] = Field(default_factory=list)  # For RADIO, MULTIPLE_CHOICE, DROP_DOWN
     survey_id: Optional[str] = None
 
     # def __post_init__(self):
