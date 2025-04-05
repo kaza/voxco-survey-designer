@@ -24,24 +24,30 @@ def list_surveys() -> List[dict]:
     return [{"id": s.id, "name": s.name, "description": s.description} for s in surveys]
 
 @function_tool
-def create_survey(wrapper: RunContextWrapper[SurveyContext], name: str, description: str) -> dict:
+def create_survey(wrapper: RunContextWrapper[SurveyContext], name: str, description: str) -> str:
     """Create a new survey."""
-    logger.debug(f"### Creating new survey with name: '{name}' and description: '{description}'")
     
-    survey = _tools.create_survey(name=name, description=description)
-    
-    logger.debug(f"Survey created with ID: {survey.id}")
-    logger.debug(f"Current surveys count: {len(_tools.list_surveys())}")
-    
-    if wrapper is not None and wrapper.context is not None:
-        logger.debug(f"Adding survey to context and setting as current survey")
-        context = wrapper.context
-        context.surveys.append(survey)
-        context.current_survey = survey
-    else:
-        logger.warning(f"### WARNING: Could not update context with survey")
-    
-    return survey
+    try:
+        logger.debug(f"### Creating new survey with name: '{name}' and description: '{description}'")
+        survey = _tools.create_survey(name=name, description=description)
+        
+        logger.debug(f"Survey created with ID: {survey.id}")
+        logger.debug(f"Current surveys count: {len(_tools.list_surveys())}")
+        
+        if wrapper is not None and wrapper.context is not None:
+            logger.debug(f"Adding survey to context and setting as current survey")
+            context = wrapper.context
+            context.surveys.append(survey)
+            context.current_survey = survey
+        else:
+            logger.warning(f"### WARNING: Could not update context with survey {survey.id}")
+            # Decide if this should be an error or just a warning
+
+        return f"Survey '{survey.name}' (ID: {survey.id}) created successfully."
+
+    except Exception as e:
+        logger.error(f"Error creating survey '{name}': {str(e)}")
+        return f"Failed to create survey '{name}'. Error: {str(e)}"
 
 @function_tool
 def add_question(wrapper: RunContextWrapper[SurveyContext], question: Question) -> str:
@@ -66,13 +72,6 @@ def add_question(wrapper: RunContextWrapper[SurveyContext], question: Question) 
         context = wrapper.context
         logger.info(f"add_question: {question.id}  {question.text}  {question.type} ")
         context.current_survey.add_question(question)
-        # Load survey, add question, and save
-        # survey = _tools.load_survey(question.survey_id)
-        # if not survey:
-        #     raise ValueError(f"Survey with ID {question.survey_id} not found")
-        
-        # survey.add_question(question)
-        #_tools.save_survey(survey)
         
         return f"Question '{question.text}' of type '{question.type.value}' successfully added to survey and stored in database."
         
