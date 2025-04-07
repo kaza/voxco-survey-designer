@@ -1,0 +1,460 @@
+Survey Resource Structure with MCP
+Here's a comprehensive MCP resource structure for a survey system, starting with basic elements and advancing to more complex ones.
+
+Basic Survey Structure Resource
+json
+{
+  "survey": {
+    "id": "survey_123",
+    "title": "Customer Feedback Survey",
+    "description": "Help us improve our products and services",
+    "pages": [
+      {
+        "id": "page_1",
+        "title": "Introduction",
+        "blocks": [
+          {
+            "id": "block_1_1",
+            "type": "question_block",
+            "title": "Basic Information",
+            "randomization": {
+              "enabled": false,
+              "type": "none"
+            },
+            "questions": [
+              {
+                "id": "q1",
+                "type": "RADIO",
+                "label": "How did you hear about us?",
+                "required": true,
+                "options": [
+                  {"id": "opt1", "text": "Social Media"},
+                  {"id": "opt2", "text": "Friend"},
+                  {"id": "opt3", "text": "Advertisement"}
+                ],
+                "randomize_options": false,
+                "include_other": false
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
+This simple example shows the fundamental hierarchy:
+
+A survey contains pages
+
+Pages contain blocks
+
+Blocks contain questions
+
+Questions have a specific type (RADIO in this example)
+
+Intermediate Survey with Multiple Question Types
+Let's expand with more question types and randomization:
+
+json
+{
+  "survey": {
+    "id": "survey_456",
+    "title": "Product Experience Survey",
+    "pages": [
+      {
+        "id": "page_1",
+        "title": "Your Experience",
+        "blocks": [
+          {
+            "id": "block_1_1",
+            "type": "question_block",
+            "title": "Product Usage",
+            "randomization": {
+              "enabled": true,
+              "type": "random"
+            },
+            "questions": [
+              {
+                "id": "q1",
+                "type": "MULTIPLE_CHOICE",
+                "label": "Which features do you use most often?",
+                "required": true,
+                "options": [
+                  {"id": "feat1", "text": "Dashboard"},
+                  {"id": "feat2", "text": "Reports"},
+                  {"id": "feat3", "text": "User Management"},
+                  {"id": "feat4", "text": "Settings"}
+                ],
+                "randomize_options": true,
+                "min_selections": 1,
+                "max_selections": 3,
+                "include_none_option": true,
+                "none_option_text": "I don't use any of these features"
+              },
+              {
+                "id": "q2",
+                "type": "RATING",
+                "label": "How would you rate the ease of use?",
+                "required": true,
+                "scale": {
+                  "min": 1,
+                  "max": 5
+                },
+                "visual_style": "stars",
+                "labels": {
+                  "min": "Very difficult",
+                  "max": "Very easy"
+                }
+              },
+              {
+                "id": "q3",
+                "type": "OPEN_ENDED",
+                "label": "What improvements would you suggest?",
+                "required": false,
+                "multiline": true,
+                "validation": {
+                  "min_length": 10,
+                  "max_length": 500
+                },
+                "placeholder": "Your feedback helps us improve..."
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
+This example introduces:
+
+Block randomization (questions will appear in random order)
+
+Three different question types: MULTIPLE_CHOICE, RATING, and OPEN_ENDED
+
+More complex question options like min/max selections and validation rules
+
+Advanced Multi-Page Survey with Complex Randomization
+Now let's create a more sophisticated survey structure:
+
+json
+{
+  "survey": {
+    "id": "survey_789",
+    "title": "Comprehensive Market Research",
+    "description": "Help us understand market trends and preferences",
+    "settings": {
+      "allow_back_navigation": true,
+      "show_progress_bar": true
+    },
+    "pages": [
+      {
+        "id": "page_1",
+        "title": "Demographics",
+        "blocks": [
+          {
+            "id": "block_1_1",
+            "type": "question_block",
+            "title": "About You",
+            "randomization": {
+              "enabled": false,
+              "type": "none"
+            },
+            "questions": [
+              {
+                "id": "q1",
+                "type": "DROP_DOWN",
+                "label": "What is your age group?",
+                "required": true,
+                "options": [
+                  {"id": "age1", "text": "18-24"},
+                  {"id": "age2", "text": "25-34"},
+                  {"id": "age3", "text": "35-44"},
+                  {"id": "age4", "text": "45-54"},
+                  {"id": "age5", "text": "55+"}
+                ],
+                "placeholder": "Select your age group"
+              },
+              {
+                "id": "q2",
+                "type": "NUMERIC",
+                "label": "How many people live in your household?",
+                "required": true,
+                "min_value": 1,
+                "max_value": 20,
+                "decimal_places": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "page_2",
+        "title": "Product Preferences",
+        "blocks": [
+          {
+            "id": "block_2_1",
+            "type": "question_block",
+            "title": "Usage Patterns",
+            "randomization": {
+              "enabled": false,
+              "type": "none"
+            },
+            "questions": [
+              {
+                "id": "q3",
+                "type": "RADIO",
+                "label": "How often do you purchase our product category?",
+                "required": true,
+                "options": [
+                  {"id": "freq1", "text": "Weekly"},
+                  {"id": "freq2", "text": "Monthly"},
+                  {"id": "freq3", "text": "Quarterly"},
+                  {"id": "freq4", "text": "Yearly or less"}
+                ],
+                "randomize_options": false
+              }
+            ]
+          },
+          {
+            "id": "block_2_2",
+            "type": "question_block",
+            "title": "Product Features",
+            "randomization": {
+              "enabled": true,
+              "type": "balanced",
+              "settings": {
+                "subset_size": 4
+              }
+            },
+            "questions": [
+              {
+                "id": "q4",
+                "type": "RATING",
+                "label": "How important is price?",
+                "required": true,
+                "scale": {"min": 1, "max": 7},
+                "labels": {"min": "Not important", "max": "Extremely important"}
+              },
+              {
+                "id": "q5",
+                "type": "RATING",
+                "label": "How important is quality?",
+                "required": true,
+                "scale": {"min": 1, "max": 7},
+                "labels": {"min": "Not important", "max": "Extremely important"}
+              },
+              {
+                "id": "q6",
+                "type": "RATING",
+                "label": "How important is customer service?",
+                "required": true,
+                "scale": {"min": 1, "max": 7},
+                "labels": {"min": "Not important", "max": "Extremely important"}
+              },
+              {
+                "id": "q7",
+                "type": "RATING",
+                "label": "How important is brand reputation?",
+                "required": true,
+                "scale": {"min": 1, "max": 7},
+                "labels": {"min": "Not important", "max": "Extremely important"}
+              },
+              {
+                "id": "q8",
+                "type": "RATING",
+                "label": "How important is environmental sustainability?",
+                "required": true,
+                "scale": {"min": 1, "max": 7},
+                "labels": {"min": "Not important", "max": "Extremely important"}
+              },
+              {
+                "id": "q9",
+                "type": "RATING",
+                "label": "How important is innovation?",
+                "required": true,
+                "scale": {"min": 1, "max": 7},
+                "labels": {"min": "Not important", "max": "Extremely important"}
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "page_3",
+        "title": "Competitive Analysis",
+        "blocks": [
+          {
+            "id": "block_3_1",
+            "type": "question_block",
+            "title": "Brand Comparison",
+            "randomization": {
+              "enabled": true,
+              "type": "fixed_randomized_subset",
+              "settings": {
+                "subset_size": 3
+              }
+            },
+            "questions": [
+              {
+                "id": "q10",
+                "type": "MULTIPLE_CHOICE",
+                "label": "Which competing brands have you used in the past year?",
+                "required": true,
+                "options": [
+                  {"id": "brand1", "text": "Brand A"},
+                  {"id": "brand2", "text": "Brand B"},
+                  {"id": "brand3", "text": "Brand C"},
+                  {"id": "brand4", "text": "Brand D"},
+                  {"id": "brand5", "text": "Brand E"}
+                ],
+                "randomize_options": true,
+                "include_none_option": true
+              },
+              {
+                "id": "q11",
+                "type": "OPEN_ENDED",
+                "label": "What do you like most about competitor products?",
+                "required": false,
+                "multiline": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "page_4",
+        "title": "Final Thoughts",
+        "blocks": [
+          {
+            "id": "block_4_1",
+            "type": "question_block",
+            "title": "Additional Feedback",
+            "randomization": {
+              "enabled": false,
+              "type": "none"
+            },
+            "questions": [
+              {
+                "id": "q12",
+                "type": "OPEN_ENDED",
+                "label": "Any additional comments or suggestions?",
+                "required": false,
+                "multiline": true,
+                "validation": {
+                  "max_length": 1000
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "logic": {
+      "branching_rules": [
+        {
+          "if": {
+            "question_id": "q10",
+            "condition": "SELECTED",
+            "option_id": "none_option"
+          },
+          "then": {
+            "action": "SKIP_TO_PAGE",
+            "target_id": "page_4"
+          }
+        }
+      ]
+    }
+  }
+}
+This advanced example demonstrates:
+
+Multi-page survey structure with logical flow
+
+Different randomization strategies for different blocks:
+
+No randomization (standard order)
+
+Balanced randomization (distributes questions evenly)
+
+Fixed randomized subset (shows only a subset of questions)
+
+All question types from the specification
+
+Branching logic (skip logic) based on responses
+
+Survey-level settings
+
+Resource for Discovering Available Surveys
+To help with resource discovery, here's a tool-accessible resource that lists available surveys:
+
+json
+{
+  "available_surveys": [
+    {
+      "id": "survey_123",
+      "title": "Customer Feedback Survey",
+      "description": "Basic feedback collection",
+      "created_at": "2025-03-15T10:30:00Z",
+      "question_count": 5,
+      "estimated_completion_time": "3 minutes"
+    },
+    {
+      "id": "survey_456",
+      "title": "Product Experience Survey",
+      "description": "Detailed product feedback",
+      "created_at": "2025-03-28T14:45:00Z",
+      "question_count": 12,
+      "estimated_completion_time": "7 minutes"
+    },
+    {
+      "id": "survey_789",
+      "title": "Comprehensive Market Research",
+      "description": "In-depth market analysis",
+      "created_at": "2025-04-02T09:15:00Z",
+      "question_count": 25,
+      "estimated_completion_time": "15 minutes"
+    }
+  ]
+}
+Resource for Retrieving Survey Response Statistics
+This resource provides aggregated statistics for a specific survey:
+
+json
+{
+  "survey_stats": {
+    "survey_id": "survey_789",
+    "total_responses": 523,
+    "completion_rate": 87.2,
+    "average_completion_time": "12.3 minutes",
+    "question_stats": [
+      {
+        "question_id": "q1",
+        "response_count": 523,
+        "distribution": {
+          "age1": 15.3,
+          "age2": 28.7,
+          "age3": 22.4,
+          "age4": 18.9,
+          "age5": 14.7
+        }
+      },
+      {
+        "question_id": "q4",
+        "response_count": 478,
+        "average_rating": 5.8,
+        "rating_distribution": {
+          "1": 3.1,
+          "2": 4.8,
+          "3": 9.2,
+          "4": 12.3,
+          "5": 21.5,
+          "6": 24.1,
+          "7": 25.0
+        }
+      }
+    ]
+  }
+}
+These MCP resources provide a structured way to represent and interact with surveys of varying complexity. The hierarchy maintains the relationship between surveys, pages, blocks, and questions, while supporting different question types and randomization strategies.
+
+To use these resources effectively with an MCP server, you would implement endpoints that expose these JSON structures, allowing AI models to analyze survey design, help users create surveys, understand survey responses, or generate insights from collected data.

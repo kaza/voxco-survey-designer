@@ -1,0 +1,372 @@
+from mcp.server.fastmcp import FastMCP
+from typing import Dict, List, Optional, Any
+from pydantic import BaseModel, Field
+import uuid
+import datetime
+
+# Define our MCP server
+mcp = FastMCP("survey_server")
+
+# Data models for survey components
+class QuestionOption(BaseModel):
+    id: str
+    text: str
+
+class BlockRandomization(BaseModel):
+    enabled: bool = False
+    type: str = "none"  # none, random, balanced, fixed_randomized_subset
+    settings: Optional[Dict[str, Any]] = None
+
+class Question(BaseModel):
+    id: str
+    type: str  # RADIO, MULTIPLE_CHOICE, etc.
+    label: str
+    required: bool = True
+    options: Optional[List[QuestionOption]] = None
+    randomize_options: Optional[bool] = False
+    include_other: Optional[bool] = False
+    # Additional fields based on question type
+    min_selections: Optional[int] = None
+    max_selections: Optional[int] = None
+    multiline: Optional[bool] = None
+    placeholder: Optional[str] = None
+    min_value: Optional[float] = None
+    max_value: Optional[float] = None
+    scale: Optional[Dict[str, int]] = None
+    visual_style: Optional[str] = None
+    labels: Optional[Dict[str, str]] = None
+
+class Block(BaseModel):
+    id: str
+    type: str = "question_block"
+    title: str
+    randomization: BlockRandomization
+    questions: List[Question] = []
+
+class Page(BaseModel):
+    id: str
+    title: str
+    blocks: List[Block] = []
+
+class Survey(BaseModel):
+    id: str
+    title: str
+    description: Optional[str] = None
+    pages: List[Page] = []
+    created_at: datetime.datetime = Field(default_factory=datetime.datetime.now)
+
+# In-memory database to store surveys
+surveys: Dict[str, Survey] = {}
+
+# API models for our tools
+class SurveySummary(BaseModel):
+    id: str
+    title: str
+    description: Optional[str] = None
+    created_at: datetime.datetime
+    question_count: int
+    estimated_completion_time: str
+
+class ListSurveysResponse(BaseModel):
+    surveys: List[SurveySummary]
+
+class GetSurveyRequest(BaseModel):
+    survey_id: str
+
+class CreateSurveyRequest(BaseModel):
+    title: str
+    description: Optional[str] = None
+
+class CreateSurveyResponse(BaseModel):
+    survey_id: str
+    message: str
+
+class AddQuestionRequest(BaseModel):
+    survey_id: str
+    page_id: Optional[str] = None
+    block_id: Optional[str] = None
+    question_type: str
+    question_text: str
+    required: bool = True
+    options: Optional[List[Dict[str, str]]] = None
+
+class AddQuestionResponse(BaseModel):
+    question_id: str
+    message: str
+
+# --------- RESOURCES ---------
+
+@mcp.resource()
+def question_types_info() -> Dict[str, Any]:
+    """Resource providing information about question types and their structure."""
+    return {
+        "RADIO": {
+            "description": "Single-answer question using radio buttons",
+            "required_fields": ["label", "options"],
+            "optional_fields": ["randomize_options", "include_other"]
+        },
+        "MULTIPLE_CHOICE": {
+            "description": "Multiple-answer question using checkboxes",
+            "required_fields": ["label", "options"],
+            "optional_fields": ["min_selections", "max_selections", "randomize_options"]
+        },
+        "OPEN_ENDED": {
+            "description": "Free text response",
+            "required_fields": ["label"],
+            "optional_fields": ["multiline", "placeholder", "validation"]
+        },
+        "DROP_DOWN": {
+            "description": "Single selection from dropdown menu",
+            "required_fields": ["label", "options"],
+            "optional_fields": ["placeholder"]
+        },
+        "NUMERIC": {
+            "description": "Numeric input field",
+            "required_fields": ["label"],
+            "optional_fields": ["min_value", "max_value", "decimal_places"]
+        },
+        "RATING": {
+            "description": "Rating scale (stars or numeric)",
+            "required_fields": ["label", "scale"],
+            "optional_fields": ["visual_style", "labels"]
+        }
+    }
+
+@mcp.resource()
+def available_surveys() -> Dict[str, Any]:
+    """Resource that lists all available surveys."""
+    survey_list = []
+    for survey_id, survey in surveys.items():
+        # Count total questions
+        question_count = 0
+        for page in survey.pages:
+            for block in page.blocks:
+                question_count += len(block.questions)
+        
+        # Estimate completion time (rough estimate)
+        estimated_time = f"{max(1, question_count // 3)} minutes"
+        
+        survey_list.append({
+            "id": survey_id,
+            "title": survey.title,
+            "description": survey.description,
+            "created_at": survey.created_at.isoformat(),
+            "question_count": question_count,
+            "estimated_completion_time": estimated_time
+        })
+    
+    return {"surveys": survey_list}
+
+@mcp.resource(uri_template="surveys/{survey_id}")
+def survey_resource(survey_id: str) -> Dict[str, Any]:
+    """Resource that provides details of a specific survey."""
+    if survey_id not in surveys:
+        return {"error": "Survey not found"}
+    
+    survey = surveys[survey_id]
+    return {"survey": survey.dict()}
+
+# --------- TOOLS ---------
+
+@mcp.tool()
+async def list_surveys() -> ListSurveysResponse:
+    """List all available surveys with summary information."""
+    survey_summaries = []
+    for survey_id, survey in surveys.items():
+        # Count questions
+        question_count = 0
+        for page in survey.pages:
+            for block in page.blocks:
+                question_count += len(block.questions)
+        
+        # Estimate completion time
+        minutes = max(1, question_count // 3)
+        
+        summary = SurveySummary(
+            id=survey_id,
+            title=survey.title,
+            description=survey.description,
+            created_at=survey.created_at,
+            question_count=question_count,
+            estimated_completion_time=f"{minutes} minutes"
+        )
+        survey_summaries.append(summary)
+    
+    return ListSurveysResponse(surveys=survey_summaries)
+
+@mcp.tool()
+async def get_survey(request: GetSurveyRequest) -> Dict[str, Any]:
+    """Get detailed information about a specific survey."""
+    survey_id = request.survey_id
+    if survey_id not in surveys:
+        return {"error": "Survey not found"}
+    
+    return {"survey": surveys[survey_id].dict()}
+
+@mcp.tool()
+async def create_survey(request: CreateSurveyRequest) -> CreateSurveyResponse:
+    """Create a new empty survey with initial structure."""
+    survey_id = f"survey_{str(uuid.uuid4())[:8]}"
+    
+    # Create initial page and block
+    page_id = f"page_{str(uuid.uuid4())[:8]}"
+    block_id = f"block_{str(uuid.uuid4())[:8]}"
+    
+    # Initialize with empty structure
+    survey = Survey(
+        id=survey_id,
+        title=request.title,
+        description=request.description,
+        pages=[
+            Page(
+                id=page_id,
+                title="Page 1",
+                blocks=[
+                    Block(
+                        id=block_id,
+                        title="Block 1",
+                        randomization=BlockRandomization(enabled=False, type="none")
+                    )
+                ]
+            )
+        ]
+    )
+    
+    # Save to our in-memory database
+    surveys[survey_id] = survey
+    
+    return CreateSurveyResponse(
+        survey_id=survey_id,
+        message=f"Survey '{request.title}' created successfully"
+    )
+
+@mcp.tool()
+async def add_question(request: AddQuestionRequest) -> AddQuestionResponse:
+    """Add a question to a survey in a specified page and block."""
+    survey_id = request.survey_id
+    if survey_id not in surveys:
+        return {"error": "Survey not found"}
+    
+    survey = surveys[survey_id]
+    
+    # Find or create page
+    page = None
+    if request.page_id:
+        for p in survey.pages:
+            if p.id == request.page_id:
+                page = p
+                break
+        if not page:
+            return {"error": "Page not found"}
+    else:
+        # Use first page by default
+        if survey.pages:
+            page = survey.pages[0]
+        else:
+            # Create a page if none exists
+            page_id = f"page_{str(uuid.uuid4())[:8]}"
+            page = Page(id=page_id, title="Page 1", blocks=[])
+            survey.pages.append(page)
+    
+    # Find or create block
+    block = None
+    if request.block_id:
+        for b in page.blocks:
+            if b.id == request.block_id:
+                block = b
+                break
+        if not block:
+            return {"error": "Block not found"}
+    else:
+        # Use first block by default
+        if page.blocks:
+            block = page.blocks[0]
+        else:
+            # Create a block if none exists
+            block_id = f"block_{str(uuid.uuid4())[:8]}"
+            block = Block(
+                id=block_id, 
+                title="Block 1",
+                randomization=BlockRandomization(enabled=False, type="none")
+            )
+            page.blocks.append(block)
+    
+    # Create question ID
+    question_id = f"q_{str(uuid.uuid4())[:8]}"
+    
+    # Process options if provided
+    options = None
+    if request.options:
+        options = [
+            QuestionOption(id=f"opt_{i}", text=opt["text"])
+            for i, opt in enumerate(request.options)
+        ]
+    
+    # Create the question based on type
+    question = Question(
+        id=question_id,
+        type=request.question_type,
+        label=request.question_text,
+        required=request.required,
+        options=options
+    )
+    
+    # Add to the block
+    block.questions.append(question)
+    
+    return AddQuestionResponse(
+        question_id=question_id,
+        message=f"Question added successfully to survey '{survey.title}'"
+    )
+
+# Initialize with a sample survey
+def create_sample_survey():
+    sample = Survey(
+        id="survey_123",
+        title="Customer Feedback Survey",
+        description="Help us improve our products and services",
+        pages=[
+            Page(
+                id="page_1",
+                title="Your Experience",
+                blocks=[
+                    Block(
+                        id="block_1_1",
+                        title="Product Usage",
+                        randomization=BlockRandomization(enabled=False, type="none"),
+                        questions=[
+                            Question(
+                                id="q1",
+                                type="RADIO",
+                                label="How did you hear about us?",
+                                required=True,
+                                options=[
+                                    QuestionOption(id="opt1", text="Social Media"),
+                                    QuestionOption(id="opt2", text="Friend"),
+                                    QuestionOption(id="opt3", text="Advertisement")
+                                ]
+                            ),
+                            Question(
+                                id="q2",
+                                type="RATING",
+                                label="How would you rate our product?",
+                                required=True,
+                                scale={"min": 1, "max": 5},
+                                visual_style="stars",
+                                labels={"min": "Poor", "max": "Excellent"}
+                            )
+                        ]
+                    )
+                ]
+            )
+        ]
+    )
+    surveys[sample.id] = sample
+
+# Initialize data
+create_sample_survey()
+
+# Run the server
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(mcp.app, host="0.0.0.0", port=8000)
