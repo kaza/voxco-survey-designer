@@ -1,6 +1,6 @@
 import secrets
 from typing import Dict
-from .models import Survey, Block, Question
+from models import Survey, Block, Question
 
 # In-memory storage for surveys
 SURVEY_DB: Dict[str, Survey] = {}
