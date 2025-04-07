@@ -42,3 +42,4 @@ next-env.d.ts
 __pycache__
 /.specstory/history
 /python/console/.idea
+/python/mpc-server/.idea
