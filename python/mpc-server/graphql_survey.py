@@ -12,25 +12,28 @@ import json # For pretty printing variables
 # from models import Survey, Block, Question
 
 # Placeholder models if models.py is not accessible
-@strawberry.type
+@strawberry.type(description="A survey question representing a single item that can be answered by a respondent")
 class Question:
-    id: str
-    text: str
-    position: int
+    """A survey question representing a single item that can be answered by a respondent"""
+    id: str = strawberry.field(description="Unique identifier for the question")
+    text: str = strawberry.field(description="The text content of the question shown to respondents")
+    position: int = strawberry.field(description="The order position of this question within its parent block")
     # Add other fields as needed, e.g., question_type: str
 
-@strawberry.type
+@strawberry.type(description="A block that groups related questions together within a survey")
 class Block:
-    id: str
-    position: int
-    questions: List[Question]
+    """A block that groups related questions together within a survey"""
+    id: str = strawberry.field(description="Unique identifier for the block")
+    position: int = strawberry.field(description="The order position of this block within its parent survey")
+    questions: List[Question] = strawberry.field(description="List of questions contained within this block")
     # Add other fields as needed
 
-@strawberry.type
+@strawberry.type(description="A survey containing blocks of questions to be presented to respondents")
 class Survey:
-    id: str
-    title: str
-    blocks: List[Block]
+    """A survey containing blocks of questions to be presented to respondents"""
+    id: str = strawberry.field(description="Unique identifier for the survey")
+    title: str = strawberry.field(description="The title of the survey")
+    blocks: List[Block] = strawberry.field(description="List of blocks contained within this survey")
     # Add other fields as needed
 
 
@@ -64,15 +67,32 @@ SURVEY_DB: Dict[str, Survey] = {
 
 # --- GraphQL Schema Definition ---
 
-@strawberry.type
+@strawberry.type(description="Root query object providing access to survey data")
 class Query:
-    @strawberry.field
-    def surveys(self, title_contains: Optional[str] = None, title_search: Optional[str] = None) -> List[Survey]:
+    @strawberry.field(
+        description="""Retrieve a list of surveys with optional title filtering.
+        
+Parameters:
+- titleContains: Filter surveys to only include those whose title contains this string (case-insensitive)
+- titleSearch: Alternative way to search for surveys by title content (case-insensitive)
+
+If both parameters are provided, titleSearch takes precedence.
+Returns an empty list if no matching surveys are found."""
+    )
+    def surveys(
+        self, 
+        title_contains: Optional[str] = None,
+        title_search: Optional[str] = None
+    ) -> List[Survey]:
         """
-        Retrieve a list of surveys.
-        Optionally filter by title containing an exact substring (case-insensitive using 'title_contains').
-        Optionally perform a broader search within the title (case-insensitive using 'title_search').
-        If 'title_search' is provided, it takes precedence over 'title_contains'.
+        Retrieve a list of surveys from the database.
+        
+        Parameters:
+        - titleContains: Filter surveys to only include those whose title contains this string (case-insensitive)
+        - titleSearch: Alternative way to search for surveys by title content (case-insensitive)
+        
+        If both parameters are provided, titleSearch takes precedence.
+        Returns an empty list if no matching surveys are found.
         """
         all_surveys = list(SURVEY_DB.values())
 
@@ -91,10 +111,25 @@ class Query:
             # Return all surveys if no filter is provided
             return all_surveys
 
-    @strawberry.field
-    def survey(self, survey_id: str) -> Optional[Survey]:
+    @strawberry.field(
+        description="""Retrieve a single survey by its unique identifier.
+        
+Parameters:
+- surveyId: The unique identifier of the survey to retrieve
+
+Returns null if no survey with the given ID exists."""
+    )
+    def survey(
+        self,
+        survey_id: str
+    ) -> Optional[Survey]:
         """
-        Retrieve a single survey by its ID.
+        Retrieve a single survey by its unique identifier.
+        
+        Parameters:
+        - surveyId: The unique identifier of the survey to retrieve
+        
+        Returns null if no survey with the given ID exists.
         """
         return SURVEY_DB.get(survey_id)
 
@@ -106,8 +141,11 @@ schema = strawberry.Schema(query=Query)
 mcp = FastMCP("graphql-survey-server")
 
 # Dedicated FastMCP tool to execute GraphQL queries
-@mcp.tool("graphql_query")
-async def execute_graphql_query(query: str, variables: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+@mcp.tool("graphql_query", description="Execute GraphQL queries against the survey schema")
+async def execute_graphql_query(
+    query: str, 
+    variables: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
     """
     Executes a GraphQL query against the survey schema.
 
@@ -146,7 +184,7 @@ async def execute_graphql_query(query: str, variables: Optional[Dict[str, Any]] 
 
     return return_data # Return the dictionary
 
-@mcp.tool("get_graphql_schema")
+@mcp.tool("get_graphql_schema", description="Retrieve the full GraphQL schema definition")
 async def get_graphql_schema() -> str:
     """
     Returns the GraphQL Schema Definition Language (SDL) string.
@@ -158,7 +196,7 @@ async def get_graphql_schema() -> str:
 
 
 # Add a simple echo tool for basic testing
-@mcp.tool()
+@mcp.tool(description="Simple echo function for testing the GraphQL server")
 async def echo() -> str:
     """Returns a simple greeting."""
     return "GraphQL Server Echo!"
