@@ -27,16 +27,6 @@ Returns an empty list if no matching surveys are found."""
         title_contains: Optional[str] = None,
         title_search: Optional[str] = None
     ) -> List[Survey]:
-        """
-        Retrieve a list of surveys from the database.
-        
-        Parameters:
-        - titleContains: Filter surveys to only include those whose title contains this string (case-insensitive)
-        - titleSearch: Alternative way to search for surveys by title content (case-insensitive)
-        
-        If both parameters are provided, titleSearch takes precedence.
-        Returns an empty list if no matching surveys are found.
-        """
         all_surveys = list(SURVEY_DB.values())
 
         if title_search:
@@ -66,14 +56,6 @@ Returns null if no survey with the given ID exists."""
         self,
         survey_id: str
     ) -> Optional[Survey]:
-        """
-        Retrieve a single survey by its unique identifier.
-        
-        Parameters:
-        - surveyId: The unique identifier of the survey to retrieve
-        
-        Returns null if no survey with the given ID exists.
-        """
         return SURVEY_DB.get(survey_id)
 
 # --- Add the Mutation Type --- 
@@ -91,14 +73,6 @@ Returns the newly created Survey object."""
         self,
         title: str
     ) -> Survey:
-        """
-        Creates a new survey and adds it to the database.
-        
-        Parameters:
-        - title: The title for the new survey.
-        
-        Returns the newly created Survey object.
-        """
         # Basic ID generation (ensure it's unique for the session)
         new_id = f"survey_{len(SURVEY_DB) + 1}"
         
@@ -131,15 +105,6 @@ Returns the updated Survey object, or null if the surveyId is not found."""
         survey_id: str,
         input: UpdateSurveyInput
     ) -> Optional[Survey]:
-        """
-        Updates specific fields of a survey identified by its ID based on the provided input.
-
-        Parameters:
-        - survey_id: The unique identifier of the survey to update.
-        - input: An UpdateSurveyInput object containing the fields to modify.
-
-        Returns the updated Survey object if found, otherwise None.
-        """
         survey = SURVEY_DB.get(survey_id)
         if survey:
             updated = False
@@ -183,15 +148,6 @@ Returns the newly created Block object, or null if the surveyId is not found."""
         survey_id: str,
         position: int
     ) -> Optional[Block]:
-        """
-        Adds a new block to a survey at the specified position, adjusting existing block positions.
-
-        Parameters:
-        - survey_id: The unique identifier of the survey.
-        - position: The desired 0-indexed position for the new block.
-
-        Returns the newly created Block object if successful, otherwise None.
-        """
         survey = SURVEY_DB.get(survey_id)
         if not survey:
             print(f"--- Add Block Failed ---")
@@ -245,10 +201,6 @@ Returns the updated Block object, or null if the blockId is not found."""
         block_id: str,
         input: UpdateBlockInput
     ) -> Optional[Block]:
-        """
-        Updates specific fields of a block identified by its ID.
-        Currently only searches for the block; add field updates logic if UpdateBlockInput gets fields.
-        """
         # Find the block (need to iterate through surveys/blocks)
         target_block: Optional[Block] = None
         for survey in SURVEY_DB.values():
@@ -299,9 +251,6 @@ Returns the updated Question object, or null if the questionId is not found."""
         question_id: str,
         input: UpdateQuestionInput
     ) -> Optional[Question]:
-        """
-        Updates specific fields (like text) of a question identified by its ID.
-        """
         target_question: Optional[Question] = None
         # Find the question (iterate through surveys/blocks/questions)
         for survey in SURVEY_DB.values():
@@ -464,6 +413,71 @@ Returns the updated Question object, or null if the questionId is not found."""
         print(f"Survey ID: {parent_survey_id}, Block ID: {parent_block.id}, Question ID: {question_id}, Direction: {direction.name}, New Position: {new_index}")
         print("--------------------")
         return parent_block
+
+    @strawberry.field(
+        description="""Add a new question to a block at a specific position.
+
+Parameters:
+- blockId: The ID of the block to add the question to.
+- position: The 0-indexed position where the new question should be inserted within the block.
+            If position is out of bounds, it will be clamped to the nearest valid position (start or end).
+- text: The initial text content for the new question.
+
+Returns the newly created Question object, or null if the blockId is not found."""
+    )
+    def add_question_to_block(
+        self,
+        block_id: str,
+        position: int,
+        text: str  # Added text parameter
+    ) -> Optional[Question]:
+        parent_block: Optional[Block] = None
+        parent_survey_id: Optional[str] = None # For logging
+
+        # Find the parent block
+        for survey in SURVEY_DB.values():
+            for block in survey.blocks:
+                if block.id == block_id:
+                    parent_block = block
+                    parent_survey_id = survey.id
+                    break
+            if parent_block:
+                break
+
+        if not parent_block:
+            print(f"--- Add Question Failed: Block not found (ID: {block_id}) ---")
+            return None
+
+        # Generate unique question ID (simple approach)
+        q_num = 1
+        new_question_id = f"{block_id}_q_{q_num}"
+        # Ensure ID uniqueness within this block's questions
+        existing_question_ids = {q.id for q in parent_block.questions}
+        while new_question_id in existing_question_ids:
+            q_num += 1
+            new_question_id = f"{block_id}_q_{q_num}"
+
+        new_question = Question(
+            id=new_question_id,
+            position=-1, # Placeholder, will be set below
+            text=text    # Use the provided text
+        )
+
+        # Clamp position to valid range [0, len(parent_block.questions)]
+        num_questions = len(parent_block.questions)
+        actual_position = max(0, min(position, num_questions))
+
+        # Insert the new question at the calculated position index
+        parent_block.questions.insert(actual_position, new_question)
+
+        # Update position attribute for all questions in the block
+        for idx, question in enumerate(parent_block.questions):
+            question.position = idx
+
+        print(f"--- Added Question to Block ---")
+        print(f"Survey ID: {parent_survey_id}, Block ID: {block_id}, New Question ID: {new_question_id}, Position: {actual_position}, Text: '{text}'")
+        print("-------------------------------")
+        return new_question # Return the newly added question
 
 # Create the GraphQL schema instance
 schema = strawberry.Schema(query=Query, mutation=Mutation) 
