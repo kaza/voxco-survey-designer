@@ -5,6 +5,8 @@ from mcp.server.fastmcp import FastMCP
 # from strawberry.fastapi import GraphQLRouter
 from strawberry.printer import print_schema # Import for schema printing
 import json # For pretty printing variables
+# Import the shared database instance
+from database import SURVEY_DB
 
 # --- Data and Models (Copied for now, ideally import from shared modules) ---
 
@@ -36,34 +38,6 @@ class Survey:
     blocks: List[Block] = strawberry.field(description="List of blocks contained within this survey")
     # Add other fields as needed
 
-
-# Example In-Memory Database (Copied from third.py for initial setup)
-# Ideally, this would be imported from a database module
-SURVEY_DB: Dict[str, Survey] = {
-    "survey1": Survey(
-        id="survey1",
-        title="Customer Satisfaction Survey",
-        blocks=[
-            Block(id="b1", position=1, questions=[
-                Question(id="q1", text="How satisfied are you?", position=1),
-                Question(id="q2", text="Any comments?", position=2),
-            ]),
-            Block(id="b2", position=2, questions=[
-                Question(id="q3", text="Would you recommend us?", position=1),
-            ]),
-        ]
-    ),
-    "survey2": Survey(
-        id="survey2",
-        title="Employee Feedback",
-        blocks=[
-            Block(id="b3", position=1, questions=[
-                Question(id="q4", text="How is your workload?", position=1),
-            ]),
-        ]
-    ),
-    # Add more dummy surveys if needed
-}
 
 # --- GraphQL Schema Definition ---
 
