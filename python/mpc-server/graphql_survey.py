@@ -67,15 +67,29 @@ SURVEY_DB: Dict[str, Survey] = {
 @strawberry.type
 class Query:
     @strawberry.field
-    def surveys(self, title_contains: Optional[str] = None) -> List[Survey]:
+    def surveys(self, title_contains: Optional[str] = None, title_search: Optional[str] = None) -> List[Survey]:
         """
-        Retrieve a list of surveys. Optionally filter by title.
+        Retrieve a list of surveys.
+        Optionally filter by title containing an exact substring (case-insensitive using 'title_contains').
+        Optionally perform a broader search within the title (case-insensitive using 'title_search').
+        If 'title_search' is provided, it takes precedence over 'title_contains'.
         """
         all_surveys = list(SURVEY_DB.values())
-        if title_contains:
+
+        if title_search:
+            # Simple substring search (case-insensitive)
+            search_lower = title_search.lower()
+            return [s for s in all_surveys if search_lower in s.title.lower()]
+        elif title_contains:
+            # Existing exact substring check (case-insensitive)
+            # Note: The original implementation was already doing what 'title_search' does.
+            # Let's keep 'title_contains' for potential future exact matching needs if desired,
+            # but for now, both arguments achieve the same result with this simple logic.
             query_lower = title_contains.lower()
             return [s for s in all_surveys if query_lower in s.title.lower()]
-        return all_surveys
+        else:
+            # Return all surveys if no filter is provided
+            return all_surveys
 
     @strawberry.field
     def survey(self, survey_id: str) -> Optional[Survey]:
