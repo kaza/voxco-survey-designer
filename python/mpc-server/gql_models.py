@@ -59,4 +59,8 @@ class UpdateQuestionInput:
         default=strawberry.UNSET,
         description="The new text content for the question. If not provided or null, the text remains unchanged."
     )
+    block_id: Optional[str] = strawberry.field(
+        default=strawberry.UNSET,
+        description="The ID of the new block to move this question to. If provided, the question will be moved to the end of the target block's question list."
+    )
     # Add other fields like 'question_type' here if needed later. 
