@@ -1,7 +1,6 @@
 // prisma/seed.ts
 import { PrismaClient } from '../src/generated/prisma';
 // Import model types specifically for type annotations
-import type { Question, ChoiceListItem } from '../src/generated/prisma';
 
 const prisma = new PrismaClient();
 

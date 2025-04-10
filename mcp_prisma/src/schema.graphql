@@ -1,195 +1,92 @@
 """
-Root query type for accessing survey data.
-"""
-type Query {
-  """
-  Fetches a single survey by its unique database ID.
-  Includes nested blocks, questions, choice items, settings, languages, and translations.
-  """
-  survey(id: ID!): Survey
+NOTE: This GraphQL schema currently serves as a reference definition for the 
+survey data structures. The canonical validation schemas are defined using Zod 
+in 'survey.zod.ts', and the database schema is defined in 'schema.prisma'. 
 
-  """
-  Fetches a list of all available surveys (summary level).
-  """
+This file is NOT used to run a GraphQL server for this project. It can be 
+maintained for documentation purposes or potentially removed if the Zod and 
+Prisma schemas are considered the sole sources of truth.
+"""
+
+type Query {
+  survey(id: ID!): Survey
   allSurveys: [Survey!]
 }
 
-"""
-Represents the top-level survey object, containing its metadata and structure.
-Derived from the root object in the original JSON survey definition.
-"""
 type Survey {
-  """Unique database identifier for the survey."""
   id: ID!
-  """The user-defined name or title of the survey (from original JSON 'name')."""
   name: String!
-  """The version of the underlying data schema format used (from original '_v')."""
-  schema_version: String # Nullable if optional
-  """Timestamp when the survey record was created in the database (ISO8601 format)."""
-  created_at: String! # Assuming DateTime is represented as String
-  """The specific version number of this survey configuration (from original 'version')."""
+  schema_version: String
+  created_at: String!
   config_version: Int!
-  """Flag possibly indicating the use of a specific system or feature version (from original 'useS2')."""
   use_s2: Boolean!
-  """The primary language code (e.g., "en") for the survey (from original 'defaultLanguage')."""
   default_language: String!
-  # theme_id: ID # Omitted as Themes table is not defined in the provided SQL
-
-  """A list of sequential content blocks within the survey."""
   blocks: [Block!]
-  """Global settings associated with this survey."""
   settings: [SurveySetting!]
-  """Languages available for this survey."""
   languages: [SurveyLanguage!]
-  """Translations associated directly with the Survey entity (if any)."""
   translations: [Translation!]
 }
 
-"""
-Represents a global setting for a survey as a key-value pair.
-"""
 type SurveySetting {
-  """The key identifying the setting (e.g., 'DISABLE_SMART_PHONE_MOBILE_SUPPORT')."""
   setting_key: String!
-  """The value of the setting (stored as text)."""
   setting_value: String
-  """Translations associated with this specific setting (e.g., for setting descriptions)."""
   translations: [Translation!]
 }
 
-"""
-Represents a language available for a specific survey.
-"""
 type SurveyLanguage {
-  """The language code (e.g., 'en', 'fr')."""
   language_code: String!
 }
 
-"""
-Represents a logical grouping of questions within a survey.
-Corresponds to an object in the 'blocks' array in the original JSON.
-"""
 type Block {
-  """Unique database identifier for the block."""
   id: ID!
-  """User-defined name of the block (from original block 'name')."""
   name: String!
-  """The sequential position (0-based or 1-based) of this block within the survey's list of blocks."""
   order_index: Int!
-  """Condition string determining if this block should be skipped."""
   skip_logic: String
-
-  """A list of sequential questions contained within this block."""
   questions: [Question!]
-  """Settings specific to this block."""
   settings: [BlockSetting!]
-  """Translations associated directly with the Block entity (e.g., for block name)."""
   translations: [Translation!]
 }
 
-"""
-Represents a setting specific to a block as a key-value pair.
-"""
 type BlockSetting {
-  """The key identifying the setting (e.g., 'Description')."""
   setting_key: String!
-  """The value of the setting (stored as text)."""
   setting_value: String
-  """Translations associated with this specific setting."""
   translations: [Translation!]
 }
 
-"""
-Represents a single question presented to the respondent.
-Corresponds to an object in a block's 'questions' array in the original JSON.
-"""
 type Question {
-  """Unique database identifier for the question."""
   id: ID!
-  """Internal name or identifier for the question (often short, like "Q1", from original question 'name')."""
   name: String!
-  """
-  Indicates the kind of question, determining rendering and answer format
-  (e.g., "RadioButton", "NumericAnswer", "RespondentTimeZone", "HybridGrid", from original question 'type').
-  """
   type: String!
-  """The sequential position (0-based or 1-based) of this question within its block."""
   order_index: Int!
-  """Flag indicating if a page break should occur after this question."""
   is_page_break: Boolean
-
-  """
-  A list of predefined answer options available for this question.
-  Relevant for choice-based question types (e.g., "RadioButton", "DropDownList").
-  Note: In this simplified schema, choices are linked directly to the question.
-  """
   choice_items: [ChoiceListItem!]
-  """Settings specific to this question."""
   settings: [QuestionSetting!]
-  """Translations associated directly with the Question entity (e.g., for question text/title)."""
   translations: [Translation!]
 }
 
-"""
-Represents a setting specific to a question as a key-value pair.
-"""
 type QuestionSetting {
-  """The key identifying the setting (e.g., 'AnswerRequired', 'EnableMobileRendering')."""
   setting_key: String!
-  """The value of the setting (stored as text)."""
   setting_value: String
-  """Translations associated with this specific setting."""
   translations: [Translation!]
 }
 
-"""
-Represents a single predefined answer option for a choice-based question.
-Corresponds to an item within a 'choiceList' in the original JSON structure,
-but linked directly to a question in this simplified schema.
-"""
 type ChoiceListItem {
-  """Unique database identifier for this specific choice item row."""
   id: ID!
-  """
-  The actual data value stored or used when this choice is selected
-  (e.g., "1", "UTC", "PacificStandardTime", from original choice 'value').
-  """
   value: String!
-  """The intended display order of this choice within the question's list (from original choice 'position')."""
   position: Int!
-  """Indicates if the choice should be visible to the respondent."""
   setting_visible: Boolean
-  """Indicates if selecting this choice prevents selecting others."""
   setting_exclusive: Boolean
-  """Translations associated with this specific choice item (e.g., for choice text)."""
   translations: [Translation!]
 }
 
-"""
-Represents a single piece of translated text for a specific element, key, and language.
-"""
 type Translation {
-  """Unique database identifier for the translation record."""
   id: ID!
-  """
-  The type of element this translation applies to.
-  Expected values based on current schema: 'Survey', 'SurveySetting', 'Block', 'BlockSetting', 'Question', 'QuestionSetting', 'ChoiceListItem'.
-  (Note: DB CHECK constraint may include other types not represented in this simplified schema).
-  """
   element_type: String!
-  """The database ID of the element being translated (e.g., a specific Survey.id or Question.id)."""
   element_id: Int!
-  """
-  The specific text component being translated
-  (e.g., 'TEXT', 'TITLE', 'LeftLabel', 'CustomErrorMessage', or a specific setting_key).
-  """
   text_key: String!
-  """The language code for this translation (e.g., 'en', 'fr')."""
   language_code: String!
-  """The actual translated text content."""
   translated_text: String!
 }
-
 
 # --- Types omitted in this simplified GraphQL schema start ---
 # - Themes / ThemeSettings (Themes table missing from provided SQL)
