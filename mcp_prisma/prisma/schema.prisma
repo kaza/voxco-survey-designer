@@ -1,0 +1,141 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// --- Simplified Models ---
+
+model Survey {
+  id             Int      @id @default(autoincrement()) // Using autoincrement for simplicity
+  name           String
+  schema_version String?
+  created_at     DateTime @default(now())
+  config_version Int
+  use_s2         Boolean
+  default_language String
+
+  // Relations
+  settings  SurveySetting[]
+  languages SurveyLanguage[]
+  blocks    Block[]
+
+  @@map("Surveys") // Maps to the table name defined in SQL
+}
+
+model SurveySetting {
+  survey_id   Int
+  setting_key String
+  setting_value String?
+
+  // Relations
+  survey Survey @relation(fields: [survey_id], references: [id], onDelete: Cascade)
+
+  @@id([survey_id, setting_key])
+  @@map("SurveySettings")
+}
+
+model SurveyLanguage {
+  survey_id     Int
+  language_code String
+
+  // Relations
+  survey Survey @relation(fields: [survey_id], references: [id], onDelete: Cascade)
+
+  @@id([survey_id, language_code])
+  @@map("SurveyLanguages")
+}
+
+model Block {
+  id          Int      @id @default(autoincrement())
+  survey_id   Int
+  name        String
+  order_index Int
+  skip_logic  String?
+
+  // Relations
+  survey    Survey          @relation(fields: [survey_id], references: [id], onDelete: Cascade)
+  settings  BlockSetting[]
+  questions Question[]
+
+  @@map("Blocks")
+}
+
+model BlockSetting {
+  block_id    Int
+  setting_key String
+  setting_value String?
+
+  // Relations
+  block Block @relation(fields: [block_id], references: [id], onDelete: Cascade)
+
+  @@id([block_id, setting_key])
+  @@map("BlockSettings")
+}
+
+model Question {
+  id            Int      @id @default(autoincrement())
+  block_id      Int
+  name          String
+  type          String   // e.g., 'NumericAnswer', 'RadioButton', 'HybridGrid'
+  order_index   Int
+  is_page_break Boolean? @default(false)
+
+  // Relations
+  block         Block             @relation(fields: [block_id], references: [id], onDelete: Cascade)
+  settings      QuestionSetting[]
+  choice_items  ChoiceListItem[]  // Relation to choices linked directly
+  responses     Response[]        // Relation to responses for this question
+
+  @@map("Questions")
+}
+
+model QuestionSetting {
+  question_id Int
+  setting_key String
+  setting_value String?
+
+  // Relations
+  question Question @relation(fields: [question_id], references: [id], onDelete: Cascade)
+
+  @@id([question_id, setting_key])
+  @@map("QuestionSettings")
+}
+
+model ChoiceListItem {
+  id                Int      @id @default(autoincrement())
+  question_id       Int      // Direct link to question
+  value             String   // The choice value
+  position          Int      // Display order for choices within this specific question
+  setting_visible   Boolean? @default(true)
+  setting_exclusive Boolean? @default(false)
+
+  // Relations
+  question    Question   @relation(fields: [question_id], references: [id], onDelete: Cascade)
+  responses   Response[] // Responses where this choice was selected
+
+  @@index([question_id, position]) // Index for ordering
+  @@map("ChoiceListItems")
+}
+
+// Table to store actual responses/answers
+model Response {
+  id                      Int      @id @default(autoincrement())
+  question_id             Int
+  selected_choice_item_id Int?     // FK to ChoiceListItem.id (if choice was selected)
+  answer_text             String?  // For open-ended, numeric, etc.
+  // Add respondent/session identifier, timestamp etc. as needed
+
+  // Relations
+  question           Question       @relation(fields: [question_id], references: [id])
+  selectedChoiceItem ChoiceListItem? @relation(fields: [selected_choice_item_id], references: [id])
+
+  @@map("Responses")
+}

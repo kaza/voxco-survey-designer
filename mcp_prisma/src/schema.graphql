@@ -1,0 +1,38 @@
+# src/schema.graphql
+type Query {
+  """Gets a single survey by its ID, including its blocks and questions."""
+  survey(id: ID!): Survey
+  """Gets all surveys (simple query for starting)."""
+  allSurveys: [Survey!]
+}
+
+type Survey {
+  id: ID!
+  name: String!
+  default_language: String!
+  config_version: Int!
+  blocks: [Block!] # Include blocks
+}
+
+type Block {
+  id: ID!
+  name: String!
+  order_index: Int!
+  questions: [Question!] # Include questions
+}
+
+type Question {
+  id: ID!
+  name: String!
+  type: String!
+  order_index: Int!
+  choice_items: [ChoiceListItem!] # Include choices if available
+}
+
+type ChoiceListItem {
+  id: ID!
+  value: String!
+  position: Int!
+}
+
+# NOTE: Mutations, Settings, Responses, etc., are omitted for this minimal start
