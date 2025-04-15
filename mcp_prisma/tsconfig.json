@@ -3,15 +3,16 @@
       "sourceMap": true,
       "outDir": "dist",
       "strict": true,
-      "lib": ["esnext"],
+      "lib": ["esnext", "dom", "dom.iterable"],
       "esModuleInterop": true,
       "module": "CommonJS", // Important for Node.js environment
       "moduleResolution": "node",
+      "target": "ESNext",
       "rootDir": "src",
       "baseUrl": ".",
-      "paths": {
-        "*": ["node_modules/*"]
-      }
+      "experimentalDecorators": true,
+      "emitDecoratorMetadata": true,
+      "skipLibCheck": true
     },
     "include": ["src/**/*"],
     "exclude": ["node_modules"]

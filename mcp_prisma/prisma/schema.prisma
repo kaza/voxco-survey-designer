@@ -4,7 +4,11 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
+}
+
+generator typegraphql {
+  provider            = "typegraphql-prisma"
+  formatGeneratedCode = "prettier"
 }
 
 datasource db {
@@ -16,32 +20,32 @@ datasource db {
 // --- Models based on the GraphQL Schema ---
 
 model Survey {
-  id             Int      @id @default(autoincrement()) // Or use CUID/UUID if preferred: @id @default(cuid())
-  name           String
-  schema_version String?  // Corresponds to '_v'
-  created_at     DateTime @default(now()) // Corresponds to '_d'
-  config_version Int      // Corresponds to 'version'
-  use_s2         Boolean  // Corresponds to 'useS2'
+  id               Int      @id @default(autoincrement()) // Or use CUID/UUID if preferred: @id @default(cuid())
+  name             String
+  schema_version   String? // Corresponds to '_v'
+  created_at       DateTime @default(now()) // Corresponds to '_d'
+  config_version   Int // Corresponds to 'version'
+  use_s2           Boolean // Corresponds to 'useS2'
   default_language String // Corresponds to 'defaultLanguage'
   // theme_id Int? // Omitted as Themes model is not defined
 
   // Relations
-  settings  SurveySetting[]
-  languages SurveyLanguage[]
-  blocks    Block[]
+  settings     SurveySetting[]
+  languages    SurveyLanguage[]
+  blocks       Block[]
   // Relation to generic translations table
-  translations Translation[] @relation("SurveyTranslations") // Named relation for clarity
+  translations Translation[]    @relation("SurveyTranslations") // Named relation for clarity
 
   @@map("Surveys") // Maps to the SQL table name
 }
 
 model SurveySetting {
-  survey_id   Int
-  setting_key String
+  survey_id     Int
+  setting_key   String
   setting_value String?
 
   // Relations
-  survey Survey @relation(fields: [survey_id], references: [id], onDelete: Cascade)
+  survey       Survey        @relation(fields: [survey_id], references: [id], onDelete: Cascade)
   // Relation to generic translations table
   translations Translation[] @relation("SurveySettingTranslations")
 
@@ -61,30 +65,30 @@ model SurveyLanguage {
 }
 
 model Block {
-  id          Int      @id @default(autoincrement())
+  id          Int     @id @default(autoincrement())
   survey_id   Int
   name        String
   order_index Int
   skip_logic  String?
 
   // Relations
-  survey    Survey          @relation(fields: [survey_id], references: [id], onDelete: Cascade)
-  settings  BlockSetting[]
-  questions Question[]
+  survey       Survey         @relation(fields: [survey_id], references: [id], onDelete: Cascade)
+  settings     BlockSetting[]
+  questions    Question[]
   // Relation to generic translations table
-  translations Translation[] @relation("BlockTranslations")
+  translations Translation[]  @relation("BlockTranslations")
 
   @@index([survey_id, order_index]) // Index for ordering
   @@map("Blocks")
 }
 
 model BlockSetting {
-  block_id    Int
-  setting_key String
+  block_id      Int
+  setting_key   String
   setting_value String?
 
   // Relations
-  block Block @relation(fields: [block_id], references: [id], onDelete: Cascade)
+  block        Block         @relation(fields: [block_id], references: [id], onDelete: Cascade)
   // Relation to generic translations table
   translations Translation[] @relation("BlockSettingTranslations")
 
@@ -96,16 +100,16 @@ model Question {
   id            Int      @id @default(autoincrement())
   block_id      Int
   name          String
-  type          String   // e.g., 'NumericAnswer', 'RadioButton', 'HybridGrid'
+  type          String // e.g., 'NumericAnswer', 'RadioButton', 'HybridGrid'
   order_index   Int
   is_page_break Boolean? @default(false)
 
   // Relations
-  block         Block             @relation(fields: [block_id], references: [id], onDelete: Cascade)
-  settings      QuestionSetting[]
-  choice_items  ChoiceListItem[]  // Relation to choices linked directly
+  block        Block             @relation(fields: [block_id], references: [id], onDelete: Cascade)
+  settings     QuestionSetting[]
+  choice_items ChoiceListItem[] // Relation to choices linked directly
   // Relation to generic translations table
-  translations Translation[] @relation("QuestionTranslations")
+  translations Translation[]     @relation("QuestionTranslations")
   // responses     Response[]     // Omitted as per request
 
   @@index([block_id, order_index]) // Index for ordering
@@ -113,12 +117,12 @@ model Question {
 }
 
 model QuestionSetting {
-  question_id Int
-  setting_key String
+  question_id   Int
+  setting_key   String
   setting_value String?
 
   // Relations
-  question Question @relation(fields: [question_id], references: [id], onDelete: Cascade)
+  question     Question      @relation(fields: [question_id], references: [id], onDelete: Cascade)
   // Relation to generic translations table
   translations Translation[] @relation("QuestionSettingTranslations")
 
@@ -128,14 +132,14 @@ model QuestionSetting {
 
 model ChoiceListItem {
   id                Int      @id @default(autoincrement())
-  question_id       Int      // Direct link to question
-  value             String   // The choice value
-  position          Int      // Display order for choices within this specific question
+  question_id       Int // Direct link to question
+  value             String // The choice value
+  position          Int // Display order for choices within this specific question
   setting_visible   Boolean? @default(true)
   setting_exclusive Boolean? @default(false)
 
   // Relations
-  question    Question   @relation(fields: [question_id], references: [id], onDelete: Cascade)
+  question     Question      @relation(fields: [question_id], references: [id], onDelete: Cascade)
   // Relation to generic translations table
   translations Translation[] @relation("ChoiceListItemTranslations")
   // responses   Response[] // Omitted as per request
@@ -148,30 +152,30 @@ model ChoiceListItem {
 model Translation {
   id              Int    @id @default(autoincrement())
   element_type    String // e.g., 'Survey', 'Question', 'ChoiceListItem', 'SurveySetting' etc.
-  element_id      Int    // ID of the element in its respective table
+  element_id      Int // ID of the element in its respective table
   text_key        String // e.g., 'TEXT', 'TITLE', or a setting_key
   language_code   String
   translated_text String
 
   // Explicit relations back to parent types for polymorphism (Workaround 1 - more robust)
   // Only one of these should be non-null for a given translation record.
-  survey             Survey?          @relation("SurveyTranslations", fields: [surveyId], references: [id], onDelete: Cascade)
-  surveyId           Int?
-  surveySetting      SurveySetting?   @relation("SurveySettingTranslations", fields: [surveySettingSurveyId, surveySettingKey], references: [survey_id, setting_key], onDelete: Cascade)
-  surveySettingSurveyId Int? // Part of composite FK
-  surveySettingKey   String? // Part of composite FK
-  block              Block?           @relation("BlockTranslations", fields: [blockId], references: [id], onDelete: Cascade)
-  blockId            Int?
-  blockSetting       BlockSetting?    @relation("BlockSettingTranslations", fields: [blockSettingBlockId, blockSettingKey], references: [block_id, setting_key], onDelete: Cascade)
-  blockSettingBlockId Int? // Part of composite FK
-  blockSettingKey    String? // Part of composite FK
-  question           Question?        @relation("QuestionTranslations", fields: [questionId], references: [id], onDelete: Cascade)
-  questionId         Int?
-  questionSetting    QuestionSetting? @relation("QuestionSettingTranslations", fields: [questionSettingQuestionId, questionSettingKey], references: [question_id, setting_key], onDelete: Cascade)
+  survey                    Survey?          @relation("SurveyTranslations", fields: [surveyId], references: [id], onDelete: Cascade)
+  surveyId                  Int?
+  surveySetting             SurveySetting?   @relation("SurveySettingTranslations", fields: [surveySettingSurveyId, surveySettingKey], references: [survey_id, setting_key], onDelete: Cascade)
+  surveySettingSurveyId     Int? // Part of composite FK
+  surveySettingKey          String? // Part of composite FK
+  block                     Block?           @relation("BlockTranslations", fields: [blockId], references: [id], onDelete: Cascade)
+  blockId                   Int?
+  blockSetting              BlockSetting?    @relation("BlockSettingTranslations", fields: [blockSettingBlockId, blockSettingKey], references: [block_id, setting_key], onDelete: Cascade)
+  blockSettingBlockId       Int? // Part of composite FK
+  blockSettingKey           String? // Part of composite FK
+  question                  Question?        @relation("QuestionTranslations", fields: [questionId], references: [id], onDelete: Cascade)
+  questionId                Int?
+  questionSetting           QuestionSetting? @relation("QuestionSettingTranslations", fields: [questionSettingQuestionId, questionSettingKey], references: [question_id, setting_key], onDelete: Cascade)
   questionSettingQuestionId Int? // Part of composite FK
-  questionSettingKey String? // Part of composite FK
-  choiceListItem     ChoiceListItem?  @relation("ChoiceListItemTranslations", fields: [choiceListItemId], references: [id], onDelete: Cascade)
-  choiceListItemId   Int?
+  questionSettingKey        String? // Part of composite FK
+  choiceListItem            ChoiceListItem?  @relation("ChoiceListItemTranslations", fields: [choiceListItemId], references: [id], onDelete: Cascade)
+  choiceListItemId          Int?
 
   @@unique([element_type, element_id, text_key, language_code]) // Ensure unique translations
   @@index([element_type, element_id]) // Index for finding translations for an element
@@ -181,7 +185,6 @@ model Translation {
   @@index([questionSettingQuestionId, questionSettingKey])
   @@map("Translations")
 }
-
 
 // --- Models omitted based on request/missing definitions ---
 // model Response { ... }
@@ -194,4 +197,3 @@ model Translation {
 // model GridColumn { ... }
 // model GridRowVariableMapping { ... }
 // model Variable { ... } // Concept removed in this simplified approach
-
