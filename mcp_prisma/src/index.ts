@@ -70,6 +70,7 @@ function registerGraphQLTool(server: McpServer, getGraphqlPort: () => number) {
 
   server.tool(
     "graphql",
+    "Execute a GraphQL operation, introspect the schema first to find the exact query or mutation you need to run. Only then should you execute the operation. Do not guess or assume the schema; always verify first.",
     GraphQLOperationSchema.shape,
     async ({ query, variables = {} }) => {
       const graphqlPort = getGraphqlPort();
