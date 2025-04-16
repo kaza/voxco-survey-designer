@@ -9,6 +9,7 @@ generator client {
 generator typegraphql {
   provider            = "typegraphql-prisma"
   formatGeneratedCode = "prettier"
+  output              = "../src/generated/type-graphql"
 }
 
 datasource db {
