@@ -188,7 +188,7 @@ async function main() {
       const modelMap = {
         openai: openai("gpt-4.1"),
         claude: anthropic("claude-3-7-sonnet-20250219"),
-        google: google("gemini-2.0-flash-001"),
+        google: google("gemini-2.5-pro-exp-03-25"),
       };
 
       // Continue with normal flow
