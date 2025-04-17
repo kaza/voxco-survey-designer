@@ -1,12 +1,7 @@
 {
   "mcpServers": {
-    "test": {
-      "name": "surveyDesignerServer",
-      "command": "node",
-      "cwd": "/Users/talhabalaj/personal/voxco-survey-designer/mcp_prisma",
-      "args": [
-        "/Users/talhabalaj/personal/voxco-survey-designer/mcp_prisma/dist/index.js"
-      ]
+    "survey": {
+      "url": "http://localhost:4000/sse"
     }
   }
 }
