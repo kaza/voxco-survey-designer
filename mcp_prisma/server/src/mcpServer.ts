@@ -7,6 +7,15 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { PrismaClient } from "@prisma/client"; // Added import
 import { log } from "node:console";
+import { getTimestamp } from "./utils/timestamp.js"; // Import the utility function
+
+// Helper function to get MM:SS timestamp
+// function getTimestamp(): string {
+//   const now = new Date();
+//   const minutes = String(now.getMinutes()).padStart(2, '0');
+//   const seconds = String(now.getSeconds()).padStart(2, '0');
+//   return `[${minutes}:${seconds}]`;
+// }
 
 // GraphQL response interface (Copied from index.ts, consider moving to a shared types file later)
 interface GraphQLResponse {
@@ -41,11 +50,12 @@ export function registerGraphQLTool(server: McpServer, getGraphqlPort: () => num
 
   server.tool(
     "graphql",
-    "Execute a GraphQL operation, introspect the schema first to find the exact query or mutation you need to run. Only then should you execute the operation. Do not guess or assume the schema; always verify first.",
+    "Execute a GraphQL operation, introspect the schema first to find the exact query or mutation you need to run."
+    +" Only then should you execute the operation. Do not guess or assume the schema; always verify first.",
     GraphQLOperationSchema.shape,
     async ({ query, variables = {} }) => {
       const graphqlPort = getGraphqlPort();
-      console.error("[MCP Server] Executing GraphQL operation:", query);
+      console.error(`${getTimestamp()} [MCP Server] Executing GraphQL operation:`, query);
 
       try {
         const response = await fetch(
@@ -65,7 +75,7 @@ export function registerGraphQLTool(server: McpServer, getGraphqlPort: () => num
         const result = (await response.json()) as GraphQLResponse;
 
         if (result.errors && result.errors.length > 0) {
-          console.error("[MCP Server] GraphQL Error:", result.errors);
+          console.error(`${getTimestamp()} [MCP Server] GraphQL Error:`, result.errors);
           throw new Error(result.errors[0].message);
         }
 
@@ -78,9 +88,9 @@ export function registerGraphQLTool(server: McpServer, getGraphqlPort: () => num
           ],
         };
       } catch (error: unknown) {
-        console.error("[MCP Server] Error executing GraphQL operation for query:", query);
-        console.error("[MCP Server] Variables:", variables);
-        console.error("[MCP Server] GraphQL Execution Error:", error);
+        console.error(`${getTimestamp()} [MCP Server] Error executing GraphQL operation for query:`, query);
+        console.error(`${getTimestamp()} [MCP Server] Variables:`, variables);
+        console.error(`${getTimestamp()} [MCP Server] GraphQL Execution Error:`, error);
         const errorMessage =
           error instanceof Error ? error.message : "Unknown error";
         return {
@@ -119,11 +129,11 @@ export function setupMcpEndpoints(app: Express, mcpServer: McpServer, getGraphql
     transports.set(transport.sessionId, transport);
     res.on("close", () => {
       transports.delete(transport.sessionId);
-      console.log(`[MCP Server] Transport closed for session ${transport.sessionId}`);
+      console.log(`${getTimestamp()} [MCP Server] Transport closed for session ${transport.sessionId}`);
     });
-    console.log(`[MCP Server] New transport connecting for session ${transport.sessionId}`);
+    console.log(`${getTimestamp()} [MCP Server] New transport connecting for session ${transport.sessionId}`);
     await mcpServer.connect(transport);
-    console.log(`[MCP Server] Transport connected for session ${transport.sessionId}`);
+    console.log(`${getTimestamp()} [MCP Server] Transport connected for session ${transport.sessionId}`);
   });
 
   // POST endpoint for MCP messages
@@ -131,10 +141,10 @@ export function setupMcpEndpoints(app: Express, mcpServer: McpServer, getGraphql
     const sessionId = req.query.sessionId as string;
     const transport = transports.get(sessionId);
     if (transport) {
-        console.log(`[MCP Server] Handling POST message for session ${sessionId}`);
+        console.log(`${getTimestamp()} [MCP Server] Handling POST message for session ${sessionId}`);
       await transport.handlePostMessage(req, res, req.body);
     } else {
-      console.error(`[MCP Server] No transport found for sessionId ${sessionId}`);
+      console.error(`${getTimestamp()} [MCP Server] No transport found for sessionId ${sessionId}`);
       res.status(400).send("No transport found for sessionId");
     }
   });

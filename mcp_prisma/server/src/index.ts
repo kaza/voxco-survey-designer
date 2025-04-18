@@ -8,29 +8,44 @@ import { google } from '@ai-sdk/google';
 import { anthropic } from '@ai-sdk/anthropic';
 import { PrismaClient } from "@prisma/client";
 import { createServer as createHttpServer } from "node:http";
-import { createYoga } from "graphql-yoga";
 import fetch from "node-fetch";
-import { buildSchema } from "type-graphql";
 import getPort from "get-port";
-import { resolvers } from "@generated/type-graphql";
+
+// Import utility function
+import { getTimestamp } from "./utils/timestamp.js";
 
 // Import MCP related functions
 import { createMcpServer, setupMcpEndpoints, createMCPTools } from "./mcpServer.js";
+// Import the new GraphQL setup function
+import { setupGraphQLServer } from "./graphqlServer.js";
 
-async function createGraphQLServer(prisma: PrismaClient) {
-  const schema = await buildSchema({ resolvers, validate: false });
-  return createYoga<{
-    context: {
-      prisma: PrismaClient;
-    };
-  }>({
-    schema,
-    context: () => ({ prisma }),
-  });
+// System prompt for the AI chat
+const CHAT_SYSTEM_PROMPT = 
+  "You are a survey designer application. Be as supportive as possible. " +
+  "If you need to use the GraphQL tool, always introspect the schema to find " +
+  "the exact query or mutation you need to run. Only then should you execute the " +
+  "operation. Do not guess or assume the schema; always verify first. " +
+  "Keep the query for introspection short and concise. Prefer Human readable responses.";
+
+// Helper function to get the AI model instance
+type SupportedModel = "openai" | "claude" | "google";
+
+function getAIModel(modelName: SupportedModel) {
+  const modelMap = {
+    openai: openai("gpt-4.1"),
+    claude: anthropic("claude-3-7-sonnet-20250219"),
+    google: google("gemini-2.5-pro-preview-03-25"),
+  };
+  
+  if (!modelMap[modelName]) {
+    console.warn(`${getTimestamp()} Unsupported model requested: ${modelName}. Defaulting to OpenAI.`);
+    return modelMap.openai; // Or throw an error, depending on desired behavior
+  }
+  return modelMap[modelName];
 }
 
 async function main() {
-  console.log("Starting server...");
+  console.log(`${getTimestamp()} Starting server...`);
 
   const port = process.env.PORT
     ? Number.parseInt(process.env.PORT, 10)
@@ -48,76 +63,47 @@ async function main() {
 
   // AI Chat endpoint
   app.post("/api/chat", async (req: Request, res: Response) => {
-    console.log("--- /api/chat endpoint hit ---");
+    console.log(`${getTimestamp()} --- /api/chat endpoint hit ---`);
     try {
       let { messages, model } = req.body as {
         messages: { role: "user" | "assistant" | "system"; content: string }[];
         model: "openai" | "claude" | "google";
       };
 
-      // Limit context window to last 5 messages
-      if (messages.length > 10) {
-        messages = [
-          // Keep system message if it exists
-          ...messages.filter((m) => m.role === "system"),
-          // Keep last 5 non-system messages
-          ...messages.filter((m) => m.role !== "system").slice(-5),
-        ];
-      }
-
-      const modelMap = {
-        openai: openai("gpt-4.1"),
-        claude: anthropic("claude-3-7-sonnet-20250219"),
-        google: google("gemini-2.5-pro-preview-03-25"),
-      };
+      const selectedModel = getAIModel(model);
       
-      //console.info("Model:", model);
-      // Continue with normal flow
       const tools = await createMCPTools(port);
-      //console.info("tools:", tools);
       
       const result = streamText({
-        model: modelMap[model],
+        model: selectedModel,
         messages,
-        system:
-          "You are a survey designer application. Be as supportive as possible. "
-          +"If you need to use the GraphQL tool, always introspect the schema to find "
-          +"the exact query or mutation you need to run. Only then should you execute the "
-          +"operation. Do not guess or assume the schema; always verify first. "
-          +"Keep the query for introspection short and concise. Prefer Human readable responses.",
-
-        //temperature: 0.3,
-        //maxTokens: 5000,
-        //frequencyPenalty: 0.5,
+        system: CHAT_SYSTEM_PROMPT,
         tools: tools,
         maxSteps: 15,
       });
 
       result.pipeDataStreamToResponse(res);
     } catch (error) {
-      console.error("Error in chat API:", error);
+      console.error(`${getTimestamp()} Error in chat API:`, error);
       res.status(500).json({ error: "Internal Server Error" });
     }
   });
 
-  // Add GraphQL server
+  // Setup Prisma Client
   const prisma = new PrismaClient();
-  const graphqlServer = await createGraphQLServer(prisma);
-  // @ts-ignore
-  app.use("/graphql", graphqlServer);
+
+  // Setup GraphQL Server using the imported function
+  await setupGraphQLServer(app, prisma);
 
   // Start HTTP server
   const httpServer = createHttpServer(app);
   httpServer.listen(port, () => {
-    console.log(`[Server] Ready on http://localhost:${port}`);
+    console.log(`${getTimestamp()} [Server] Ready on http://localhost:${port}`);
     console.log(
-      `[Server] GraphQL endpoint at http://localhost:${port}/graphql`
+      `${getTimestamp()} [Server] MCP SSE endpoints: GET http://localhost:${port}/sse, POST http://localhost:${port}/messages`
     );
     console.log(
-      `[Server] MCP SSE endpoints: GET http://localhost:${port}/sse, POST http://localhost:${port}/messages`
-    );
-    console.log(
-      `[Server] AI Chat endpoint at http://localhost:${port}/api/chat`
+      `${getTimestamp()} [Server] AI Chat endpoint at http://localhost:${port}/api/chat`
     );
   });
 
@@ -134,6 +120,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error("[Server] Error starting server:", err);
+  console.error(`${getTimestamp()} [Server] Error starting server:`, err);
   process.exit(1);
 });
