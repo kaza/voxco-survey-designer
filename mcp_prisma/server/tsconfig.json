@@ -9,7 +9,11 @@
     "outDir": "dist",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@generated/*": ["../../node_modules/@generated/*"]
+    }
   },
   "include": ["**/*.ts"],
   "exclude": ["node_modules"]

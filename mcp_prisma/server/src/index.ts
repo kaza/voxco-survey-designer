@@ -169,6 +169,7 @@ async function main() {
 
   // AI Chat endpoint
   app.post("/api/chat", async (req: Request, res: Response) => {
+    console.log("--- /api/chat endpoint hit ---");
     try {
       let { messages, model } = req.body as {
         messages: { role: "user" | "assistant" | "system"; content: string }[];
@@ -190,19 +191,22 @@ async function main() {
         claude: anthropic("claude-3-7-sonnet-20250219"),
         google: google("gemini-2.5-pro-exp-03-25"),
       };
-
+      
+      //console.info("Model:", model);
       // Continue with normal flow
       const tools = await createMCPTools();
+      console.info("tools:", tools);
+      
       const result = streamText({
         model: modelMap[model],
         messages,
         system:
           "You are a survey designer application. Be concise and direct in your responses. If you need to use the GraphQL tool, always introspect the schema to find the exact query or mutation you need to run. Only then should you execute the operation. Do not guess or assume the schema; always verify first. Keep the query for introspection short and concise. Prefer Human readable responses.",
-        temperature: 0.3,
-        maxTokens: 500,
-        frequencyPenalty: 0.5,
+        //temperature: 0.3,
+        //maxTokens: 5000,
+        //frequencyPenalty: 0.5,
         tools: tools,
-        maxSteps: 15,
+        //maxSteps: 15,
       });
 
       result.pipeDataStreamToResponse(res);
