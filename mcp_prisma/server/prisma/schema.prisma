@@ -6,9 +6,11 @@ generator client {
   provider = "prisma-client-js"
 }
 
-generator typegraphql {
-  provider            = "typegraphql-prisma"
-  formatGeneratedCode = "prettier"
+
+generator pothos {
+  provider = "prisma-pothos-types"
+  // Optional: Specify output path if needed, default is usually fine
+  // output = "./node_modules/@pothos/plugin-prisma/generated"
 }
 
 datasource db {
