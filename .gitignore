@@ -45,3 +45,4 @@ __pycache__
 /python/mpc-server/.idea
 /mcp_prisma/src/generated/prisma
 mcp_prisma/prisma/dev.db
+*.db
