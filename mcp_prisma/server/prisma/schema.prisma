@@ -6,9 +6,27 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// Configure typegraphql-prisma generator
 generator typegraphql {
-  provider            = "typegraphql-prisma"
-  formatGeneratedCode = "prettier"
+  provider = "typegraphql-prisma"
+  // Output directory for generated code
+  output = "../src/generated/type-graphql" // Adjust path as needed
+
+  // --- Configuration for Minimal Schema ---
+
+  // 1. Explicitly list models to expose (optional, but good practice)
+  // models = ["Survey", "Block", "Translation", "SurveySetting", "SurveyLanguage"]
+
+  // 2. Expose ONLY the CRUD operations you need
+  //    Do NOT list resolvers like: aggregate*, groupBy*, deleteMany*, updateMany*, upsertOne*, deleteOne*, updateOne* unless specifically required.
+  exposeResolvers = ["findUniqueSurvey", "findManySurvey", "createOneSurvey"]
+
+  // 3. Hide specific fields if necessary (optional)
+  hideFields = ["_count"]
+
+  // 4. Control exactly which parts of the schema get generated
+  emitOnly = ["enums", "models", "inputs", "crudResolvers"]
+  emitRedundantTypes = true
 }
 
 datasource db {

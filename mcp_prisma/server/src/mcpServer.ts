@@ -9,6 +9,10 @@ import { PrismaClient } from "@prisma/client"; // Added import
 import { log } from "node:console";
 import { getTimestamp } from "./utils/timestamp.js"; // Import the utility function
 import { default_api } from "default_api"
+import * as fs from "node:fs"; // Added for file system access
+import * as path from "node:path"; // Added for path manipulation
+import { buildGraphQLSchema } from "./graphqlServer.js"; // Import the schema builder
+import { printSchema } from "graphql"; // Import printSchema
 
 // Helper function to get MM:SS timestamp
 // function getTimestamp(): string {
@@ -137,6 +141,54 @@ export function registerEchoTool(server: McpServer): void {
   );
 }
 
+// --- New Tool: Get Minimal Schema --- (Now generates dynamically)
+
+// Function to handle the Get Minimal Schema tool logic
+async function handleGetSchemaTool(): Promise<{ content: Array<{ type: "text"; text: string }> }> {
+  const timestamp = getTimestamp();
+  console.log(`${timestamp} [MCP Server] Executing GetSchema tool - Generating schema dynamically`);
+
+  try {
+    // 1. Build the schema object using the configured builder
+    const schema = await buildGraphQLSchema();
+    // 2. Print the schema object to SDL string
+    const schemaAsString = printSchema(schema);
+
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: schemaAsString,
+        },
+      ],
+    };
+  } catch (error: unknown) {
+    console.error(`${timestamp} [MCP Server] Error generating GraphQL schema dynamically:`, error);
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: `Error retrieving GraphQL schema: ${errorMessage}`,
+        },
+      ],
+    };
+  }
+}
+
+// Function to register the Get Minimal Schema tool
+export function registerGetSchemaTool(server: McpServer): void {
+  server.tool(
+    "getMinimalSchema",
+    "Retrieves the pre-generated, minimal GraphQL schema definition (SDL). Takes no arguments.",
+    {}, // No input schema needed
+    handleGetSchemaTool // Use the named function
+  );
+}
+
+// --- End New Tool ---
+
 // Function to create MCP tools client-side
 export async function createMCPTools(mcpPort: number) { // Assuming MCP runs on the same port for now
   const mcpClient = await experimental_createMCPClient({
@@ -153,6 +205,7 @@ export function setupMcpEndpoints(app: Express, mcpServer: McpServer, getGraphql
   const transports = new Map<string, SSEServerTransport>();
   registerGraphQLTool(mcpServer, getGraphqlPort); // Register tool here
   registerEchoTool(mcpServer); // Register the new echo tool
+  registerGetSchemaTool(mcpServer); // Register the schema tool
 
   // SSE endpoint for MCP
   app.get("/sse", async (_req: Request, res: Response) => {
