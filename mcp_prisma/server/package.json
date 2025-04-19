@@ -39,7 +39,13 @@
   "devDependencies": {
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.1",
+    "@types/node": "^22.14.1",
+    "ts-node": "^10.9.2",
     "tsx": "^4.19.3",
-    "typegraphql-prisma": "^0.28.0"
+    "typegraphql-prisma": "^0.28.0",
+    "typescript": "^5.8.3"
+  },
+  "prisma": {
+    "seed": "node --loader ts-node/esm prisma/seed.ts"
   }
 }
