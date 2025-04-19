@@ -8,6 +8,7 @@ import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
 import { PrismaClient } from "@prisma/client"; // Added import
 import { log } from "node:console";
 import { getTimestamp } from "./utils/timestamp.js"; // Import the utility function
+import { default_api } from "default_api"
 
 // Helper function to get MM:SS timestamp
 // function getTimestamp(): string {
@@ -38,6 +39,61 @@ export function createMcpServer(): McpServer {
   });
 }
 
+// Function to handle the GraphQL operation execution logic
+async function handleGraphQLOperation(
+  { query, variables = {} }: { query: string; variables?: Record<string, unknown> },
+  getGraphqlPort: () => number
+): Promise<{ content: Array<{ type: "text"; text: string }> }> {
+  const graphqlPort = getGraphqlPort();
+  console.error(`${getTimestamp()} [MCP Server] Executing GraphQL operation:`, query);
+
+  try {
+    const response = await fetch(
+      `http://localhost:${graphqlPort}/graphql`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          query,
+          variables,
+        }),
+      }
+    );
+
+    const result = (await response.json()) as GraphQLResponse;
+
+    if (result.errors && result.errors.length > 0) {
+      console.error(`${getTimestamp()} [MCP Server] GraphQL Error:`, result.errors);
+      throw new Error(result.errors[0].message);
+    }
+
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(result.data || {}, null, 2),
+        },
+      ],
+    };
+  } catch (error: unknown) {
+    console.error(`${getTimestamp()} [MCP Server] Error executing GraphQL operation for query:`, query);
+    console.error(`${getTimestamp()} [MCP Server] Variables:`, variables);
+    console.error(`${getTimestamp()} [MCP Server] GraphQL Execution Error:`, error);
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: `Error executing GraphQL operation: ${errorMessage}`,
+        },
+      ],
+    };
+  }
+}
+
 // Function to register the GraphQL tool
 export function registerGraphQLTool(server: McpServer, getGraphqlPort: () => number): void {
   const GraphQLOperationSchema = z.object({
@@ -53,57 +109,31 @@ export function registerGraphQLTool(server: McpServer, getGraphqlPort: () => num
     "Execute a GraphQL operation, introspect the schema first to find the exact query or mutation you need to run."
     +" Only then should you execute the operation. Do not guess or assume the schema; always verify first.",
     GraphQLOperationSchema.shape,
-    async ({ query, variables = {} }) => {
-      const graphqlPort = getGraphqlPort();
-      console.error(`${getTimestamp()} [MCP Server] Executing GraphQL operation:`, query);
+    (args) => handleGraphQLOperation(args, getGraphqlPort) // Use the named function
+  );
+}
 
-      try {
-        const response = await fetch(
-          `http://localhost:${graphqlPort}/graphql`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              query,
-              variables,
-            }),
-          }
-        );
+// Function to handle the Echo tool logic
+async function handleEchoTool(): Promise<{ content: Array<{ type: "text"; text: string }> }> {
+  const timestamp = getTimestamp();
+  console.log(`${timestamp} [MCP Server] Executing Echo tool`);
+  return {
+    content: [
+      {
+        type: "text" as const, // Ensure type is literal "text"
+        text: `echo ${timestamp}`,
+      },
+    ],
+  };
+}
 
-        const result = (await response.json()) as GraphQLResponse;
-
-        if (result.errors && result.errors.length > 0) {
-          console.error(`${getTimestamp()} [MCP Server] GraphQL Error:`, result.errors);
-          throw new Error(result.errors[0].message);
-        }
-
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(result.data || {}, null, 2),
-            },
-          ],
-        };
-      } catch (error: unknown) {
-        console.error(`${getTimestamp()} [MCP Server] Error executing GraphQL operation for query:`, query);
-        console.error(`${getTimestamp()} [MCP Server] Variables:`, variables);
-        console.error(`${getTimestamp()} [MCP Server] GraphQL Execution Error:`, error);
-        const errorMessage =
-          error instanceof Error ? error.message : "Unknown error";
-        return {
-          
-          content: [
-            {
-              type: "text",
-              text: `Error executing GraphQL operation: ${errorMessage}`,
-            },
-          ],
-        };
-      }
-    }
+// Function to register the Echo tool
+export function registerEchoTool(server: McpServer): void {
+  server.tool(
+    "echo",
+    "Responds with 'echo' and the current server time.",
+    {}, // No input schema needed
+    handleEchoTool // Use the named function
   );
 }
 
@@ -122,6 +152,7 @@ export async function createMCPTools(mcpPort: number) { // Assuming MCP runs on 
 export function setupMcpEndpoints(app: Express, mcpServer: McpServer, getGraphqlPort: () => number): Map<string, SSEServerTransport> {
   const transports = new Map<string, SSEServerTransport>();
   registerGraphQLTool(mcpServer, getGraphqlPort); // Register tool here
+  registerEchoTool(mcpServer); // Register the new echo tool
 
   // SSE endpoint for MCP
   app.get("/sse", async (_req: Request, res: Response) => {
