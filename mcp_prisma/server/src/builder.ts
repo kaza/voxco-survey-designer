@@ -54,6 +54,7 @@ builder.prismaObject('Survey', {
     settings: t.relation('settings'), // Expose the relation to SurveySetting
     languages: t.relation('languages'), // Expose the relation to SurveyLanguage
     blocks: t.relation('blocks'), // Expose the relation to Block
+    translations: t.relation('translations'), // Expose the relation to SurveyTranslation
   }),
 });
 
@@ -73,6 +74,17 @@ builder.prismaObject('SurveySetting', {
 
     // Omit translations relation for now, requires specific handling
     // translations: t.relation('translations')
+  }),
+});
+
+// ++ Define the SurveyTranslation object type ++
+builder.prismaObject('SurveyTranslation', {
+  description: "Translations for a Survey's fields.",
+  fields: (t) => ({
+    surveyId: t.exposeInt('survey_id'),
+    languageCode: t.exposeString('language_code'),
+    name: t.exposeString('name'), // Translated survey name
+    survey: t.relation('survey'), // Relation back to Survey
   }),
 });
 
@@ -103,9 +115,21 @@ builder.prismaObject('Block', {
     survey: t.relation('survey'), // Relation back to Survey
     settings: t.relation('settings'), // Relation to BlockSetting
     questions: t.relation('questions'), // Relation to Question
+    translations: t.relation('translations'), // Expose the relation to BlockTranslation
 
     // Omit translations relation for now
     // translations: t.relation('translations')
+  }),
+});
+
+// ++ Define the BlockTranslation object type ++
+builder.prismaObject('BlockTranslation', {
+  description: "Translations for a Block's fields.",
+  fields: (t) => ({
+    blockId: t.exposeInt('block_id'),
+    languageCode: t.exposeString('language_code'),
+    name: t.exposeString('name'), // Translated block name
+    block: t.relation('block'), // Relation back to Block
   }),
 });
 
@@ -143,9 +167,21 @@ builder.prismaObject('Question', {
     block: t.relation('block'), // Relation back to Block
     settings: t.relation('settings'), // Relation to QuestionSetting
     choiceItems: t.relation('choice_items'), // Relation to ChoiceListItem
+    translations: t.relation('translations'), // Expose the relation to QuestionTranslation
 
     // Omit translations relation for now
     // translations: t.relation('translations')
+  }),
+});
+
+// ++ Define the QuestionTranslation object type ++
+builder.prismaObject('QuestionTranslation', {
+  description: "Translations for a Question's fields.",
+  fields: (t) => ({
+    questionId: t.exposeInt('question_id'),
+    languageCode: t.exposeString('language_code'),
+    text: t.exposeString('text'), // Translated question text
+    question: t.relation('question'), // Relation back to Question
   }),
 });
 
@@ -181,9 +217,21 @@ builder.prismaObject('ChoiceListItem', {
 
     // Expose the relation back to Question
     question: t.relation('question'),
+    translations: t.relation('translations'), // Expose the relation to ChoiceListItemTranslation
 
     // Omit translations relation for now
     // translations: t.relation('translations')
+  }),
+});
+
+// ++ Define the ChoiceListItemTranslation object type ++
+builder.prismaObject('ChoiceListItemTranslation', {
+  description: "Translations for a ChoiceListItem's fields.",
+  fields: (t) => ({
+    choiceListItemId: t.exposeInt('choice_list_item_id'),
+    languageCode: t.exposeString('language_code'),
+    label: t.exposeString('label'), // Translated choice label
+    choiceListItem: t.relation('choice_list_item'), // Relation back to ChoiceListItem
   }),
 });
 
