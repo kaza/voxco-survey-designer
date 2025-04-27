@@ -10,6 +10,7 @@ import { PrismaClient } from "@prisma/client";
 import { createServer as createHttpServer } from "node:http";
 import fetch from "node-fetch";
 import getPort from "get-port";
+import { printSchema, type GraphQLSchema } from "graphql";
 
 // Import utility function
 import { getTimestamp } from "./utils/timestamp.js";
@@ -21,13 +22,25 @@ import { setupGraphQLServer } from "./graphqlServer.js";
 // ++ Import the Pothos schema from builder.ts again ++
 import { schema } from "./builder.js";
 
-// System prompt for the AI chat
-const CHAT_SYSTEM_PROMPT = 
+// Base system prompt for the AI chat
+const BASE_CHAT_SYSTEM_PROMPT =
   "You are a survey designer application. Be as supportive as possible. " +
   "If you need to use the GraphQL tool, always introspect the schema to find " +
   "the exact query or mutation you need to run. Only then should you execute the " +
   "operation. Do not guess or assume the schema; always verify first. " +
-  "Keep the query for introspection short and concise. Prefer Human readable responses.";
+  "Keep the query for introspection short and concise. Prefer Human readable responses." +
+  "\n\nThe available GraphQL schema is:\n```graphql\n{graphqlSchema}\n```";
+
+// ++ Helper function to get schema string and measure duration ++
+async function getGraphQLSchemaString(schemaObj: GraphQLSchema): Promise<string> {
+  console.log(`${getTimestamp()} [Schema] Generating GraphQL schema string...`);
+  const startTime = performance.now();
+  const schemaString = printSchema(schemaObj);
+  const endTime = performance.now();
+  const duration = (endTime - startTime).toFixed(2);
+  console.log(`${getTimestamp()} [Schema] Schema string generated in ${duration} ms.`);
+  return schemaString;
+}
 
 // Helper function to get the AI model instance
 type SupportedModel = "openai" | "claude" | "google";
@@ -65,6 +78,11 @@ async function main() {
   // ++ Setup GraphQL Server FIRST to get the finalized schema ++
   const yogaServer = await setupGraphQLServer(app, prisma);
 
+  // ++ Get GraphQL schema string AFTER it's finalized/imported ++
+  const schemaString = await getGraphQLSchemaString(schema);
+  // ++ Construct the final system prompt ++
+  const finalChatSystemPrompt = BASE_CHAT_SYSTEM_PROMPT.replace('{graphqlSchema}', schemaString);
+
   // ++ Setup MCP Server and Endpoints, passing the schema from the Yoga server ++
   // ++ Pass the imported schema directly, ensuring setupGraphQLServer runs first ++
   const mcpServer = createMcpServer();
@@ -86,7 +104,7 @@ async function main() {
       const result = streamText({
         model: selectedModel,
         messages,
-        system: CHAT_SYSTEM_PROMPT,
+        system: finalChatSystemPrompt,
         tools: tools,
         maxSteps: 15,
       });
