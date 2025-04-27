@@ -29,6 +29,8 @@ const BASE_CHAT_SYSTEM_PROMPT =
   "the exact query or mutation you need to run. Only then should you execute the " +
   "operation. Do not guess or assume the schema; always verify first. " +
   "Keep the query for introspection short and concise. Prefer Human readable responses." +
+  "Use only mutations which are available in the schema, "+
+  "otherwise inform the user that you can not perform the operation." +
   "\n\nThe available GraphQL schema is:\n```graphql\n{graphqlSchema}\n```";
 
 // ++ Helper function to get schema string and measure duration ++

@@ -1,5 +1,6 @@
 import { builder } from '../../builder-instance.js';
 import { prisma } from '../../prisma-client.js'; // Import prisma client
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 // Define the input type for updateSurveyTranslation
 const UpdateSurveyTranslationInput = builder.inputType('UpdateSurveyTranslationInput', {
@@ -37,24 +38,30 @@ builder.mutationField('updateSurveyTranslation', (t) =>
         throw new Error("At least one field (title or description) must be provided for updating the translation.");
       }
 
-      // Use the composite key to find and update the specific translation
-      const updatedTranslation = await ctx.prisma.surveyTranslation.update({
-        where: {
-          survey_id_language_code: { // Prisma's convention for composite keys
-            survey_id: surveyId,
-            language_code: languageCode,
+      try {
+        // Use the composite key to find and update the specific translation
+        const updatedTranslation = await ctx.prisma.surveyTranslation.update({
+          where: {
+            survey_id_language_code: { // Prisma's convention for composite keys
+              survey_id: surveyId,
+              language_code: languageCode,
+            },
           },
-        },
-        data: updateData,
-        // Include fields based on the GraphQL query selection set
-        ...query,
-      });
+          data: updateData,
+          // Include fields based on the GraphQL query selection set
+          ...query,
+        });
 
-      if (!updatedTranslation) {
-         throw new Error(`SurveyTranslation not found for surveyId: ${surveyId} and languageCode: ${languageCode}`);
+        return updatedTranslation;
+      } catch (error: unknown) {
+        // Pass through the original Prisma error for better error details
+        if (error instanceof PrismaClientKnownRequestError) {
+          // Preserve the original Prisma error
+          throw error;
+        }
+        // For other types of errors, still throw a sensible error
+        throw new Error(`Failed to update survey translation: ${(error as Error).message}`);
       }
-
-      return updatedTranslation;
     },
   })
 ); 
