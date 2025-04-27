@@ -1,16 +1,14 @@
 import type { Express } from "express";
 import { PrismaClient } from "@prisma/client";
 import { createYoga } from "graphql-yoga";
-import { buildSchema } from "type-graphql";
-import { resolvers } from "@generated/type-graphql"; // Assuming this path remains correct relative to the build output or tsconfig paths
 import { getTimestamp } from "./utils/timestamp.js"; // Import the utility function
+import { schema } from './builder.js'; 
 
-async function buildGraphQLSchema() {
-  return await buildSchema({ resolvers, validate: false });
-}
+// ++ Define the Yoga server type ++
+type YogaServer = ReturnType<typeof createYoga<{ context: { prisma: PrismaClient } }>>;
 
-export async function setupGraphQLServer(app: Express, prisma: PrismaClient) {
-  const schema = await buildGraphQLSchema();
+// ++ Update function signature to return the Yoga server instance ++
+export async function setupGraphQLServer(app: Express, prisma: PrismaClient): Promise<YogaServer> {
   const graphqlServer = createYoga<{
     context: {
       prisma: PrismaClient;
@@ -27,4 +25,6 @@ export async function setupGraphQLServer(app: Express, prisma: PrismaClient) {
   console.log(
     `${getTimestamp()} [Server] GraphQL endpoint setup at ${graphqlServer.graphqlEndpoint}`
   );
+
+  return graphqlServer; // ++ Return the Yoga server instance ++
 } 

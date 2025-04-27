@@ -18,6 +18,8 @@ import { getTimestamp } from "./utils/timestamp.js";
 import { createMcpServer, setupMcpEndpoints, createMCPTools } from "./mcpServer.js";
 // Import the new GraphQL setup function
 import { setupGraphQLServer } from "./graphqlServer.js";
+// ++ Import the Pothos schema from builder.ts again ++
+import { schema } from "./builder.js";
 
 // System prompt for the AI chat
 const CHAT_SYSTEM_PROMPT = 
@@ -57,9 +59,16 @@ async function main() {
   app.use(cors());
   app.use(express.json({ limit: "50mb" }));
 
-  // Setup MCP Server and Endpoints
+  // ++ Setup Prisma Client first ++
+  const prisma = new PrismaClient();
+
+  // ++ Setup GraphQL Server FIRST to get the finalized schema ++
+  const yogaServer = await setupGraphQLServer(app, prisma);
+
+  // ++ Setup MCP Server and Endpoints, passing the schema from the Yoga server ++
+  // ++ Pass the imported schema directly, ensuring setupGraphQLServer runs first ++
   const mcpServer = createMcpServer();
-  setupMcpEndpoints(app, mcpServer, () => graphqlPort);
+  setupMcpEndpoints(app, mcpServer, () => graphqlPort, schema);
 
   // AI Chat endpoint
   app.post("/api/chat", async (req: Request, res: Response) => {
@@ -88,12 +97,6 @@ async function main() {
       res.status(500).json({ error: "Internal Server Error" });
     }
   });
-
-  // Setup Prisma Client
-  const prisma = new PrismaClient();
-
-  // Setup GraphQL Server using the imported function
-  await setupGraphQLServer(app, prisma);
 
   // Start HTTP server
   const httpServer = createHttpServer(app);

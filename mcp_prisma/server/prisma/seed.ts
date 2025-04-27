@@ -1,5 +1,6 @@
 // prisma/seed.ts
-import { PrismaClient } from '../src/generated/prisma';
+// import { PrismaClient, Question, ChoiceListItem } from '../src/generated/prisma.js';
+import { PrismaClient, Question, ChoiceListItem } from '@prisma/client';
 // Import model types specifically for type annotations
 
 const prisma = new PrismaClient();
@@ -170,36 +171,48 @@ async function main() {
   // This approach is often clearer for polymorphic relations
 
   // Translations for Survey 1
-  const q1_s1 = survey1.blocks[0].questions.find(q => q.name === 'Q1_Rating');
-  const q2_s1 = survey1.blocks[0].questions.find(q => q.name === 'Q2_Comment');
-  const choice_good_s1 = q1_s1?.choice_items.find(c => c.value === 'Good');
-  const choice_avg_s1 = q1_s1?.choice_items.find(c => c.value === 'Average');
-  const choice_poor_s1 = q1_s1?.choice_items.find(c => c.value === 'Poor');
+  const q1_s1 = survey1.blocks[0].questions.find((q: Question) => q.name === 'Q1_Rating');
+  const q2_s1 = survey1.blocks[0].questions.find((q: Question) => q.name === 'Q2_Comment');
+  const choice_good_s1 = q1_s1?.choice_items.find((c: ChoiceListItem) => c.value === 'Good');
+  const choice_avg_s1 = q1_s1?.choice_items.find((c: ChoiceListItem) => c.value === 'Average');
+  const choice_poor_s1 = q1_s1?.choice_items.find((c: ChoiceListItem) => c.value === 'Poor');
 
   if (q1_s1 && q2_s1 && choice_good_s1 && choice_avg_s1 && choice_poor_s1) {
-    await prisma.translation.createMany({
+    // Create Survey Translations
+    await prisma.surveyTranslation.createMany({
       data: [
-        // Survey Name
-        { element_type: 'Survey', element_id: survey1.id, surveyId: survey1.id, text_key: 'name', language_code: 'en', translated_text: 'Customer Feedback EN/FR' },
-        { element_type: 'Survey', element_id: survey1.id, surveyId: survey1.id, text_key: 'name', language_code: 'fr', translated_text: 'Feedback Client FR/EN' },
-        // Block Name
-        { element_type: 'Block', element_id: survey1.blocks[0].id, blockId: survey1.blocks[0].id, text_key: 'name', language_code: 'en', translated_text: 'Feedback Block' },
-        { element_type: 'Block', element_id: survey1.blocks[0].id, blockId: survey1.blocks[0].id, text_key: 'name', language_code: 'fr', translated_text: 'Bloc de Feedback' },
-        // Question 1 Text
-        { element_type: 'Question', element_id: q1_s1.id, questionId: q1_s1.id, text_key: 'TEXT', language_code: 'en', translated_text: 'How was your experience?' },
-        { element_type: 'Question', element_id: q1_s1.id, questionId: q1_s1.id, text_key: 'TEXT', language_code: 'fr', translated_text: 'Comment était votre expérience?' },
-        // Question 2 Text
-        { element_type: 'Question', element_id: q2_s1.id, questionId: q2_s1.id, text_key: 'TEXT', language_code: 'en', translated_text: 'Any additional comments?' },
-        { element_type: 'Question', element_id: q2_s1.id, questionId: q2_s1.id, text_key: 'TEXT', language_code: 'fr', translated_text: 'Des commentaires additionnels?' },
-        // Choice Texts for Q1
-        { element_type: 'ChoiceListItem', element_id: choice_good_s1.id, choiceListItemId: choice_good_s1.id, text_key: 'TEXT', language_code: 'en', translated_text: 'Good' },
-        { element_type: 'ChoiceListItem', element_id: choice_good_s1.id, choiceListItemId: choice_good_s1.id, text_key: 'TEXT', language_code: 'fr', translated_text: 'Bon' },
-        { element_type: 'ChoiceListItem', element_id: choice_avg_s1.id, choiceListItemId: choice_avg_s1.id, text_key: 'TEXT', language_code: 'en', translated_text: 'Average' },
-        { element_type: 'ChoiceListItem', element_id: choice_avg_s1.id, choiceListItemId: choice_avg_s1.id, text_key: 'TEXT', language_code: 'fr', translated_text: 'Moyen' },
-        { element_type: 'ChoiceListItem', element_id: choice_poor_s1.id, choiceListItemId: choice_poor_s1.id, text_key: 'TEXT', language_code: 'en', translated_text: 'Poor' },
-        { element_type: 'ChoiceListItem', element_id: choice_poor_s1.id, choiceListItemId: choice_poor_s1.id, text_key: 'TEXT', language_code: 'fr', translated_text: 'Pauvre' },
+        { survey_id: survey1.id, language_code: 'en', name: 'Customer Feedback EN/FR' },
+        { survey_id: survey1.id, language_code: 'fr', name: 'Feedback Client FR/EN' },
       ],
     });
+    // Create Block Translations
+    await prisma.blockTranslation.createMany({
+      data: [
+        { block_id: survey1.blocks[0].id, language_code: 'en', name: 'Feedback Block' },
+        { block_id: survey1.blocks[0].id, language_code: 'fr', name: 'Bloc de Feedback' },
+      ],
+    });
+    // Create Question Translations
+    await prisma.questionTranslation.createMany({
+        data: [
+          { question_id: q1_s1.id, language_code: 'en', text: 'How was your experience?' },
+          { question_id: q1_s1.id, language_code: 'fr', text: 'Comment était votre expérience?' },
+          { question_id: q2_s1.id, language_code: 'en', text: 'Any additional comments?' },
+          { question_id: q2_s1.id, language_code: 'fr', text: 'Des commentaires additionnels?' },
+        ]
+    });
+    // Create ChoiceListItem Translations
+    await prisma.choiceListItemTranslation.createMany({
+        data: [
+          { choice_list_item_id: choice_good_s1.id, language_code: 'en', label: 'Good' },
+          { choice_list_item_id: choice_good_s1.id, language_code: 'fr', label: 'Bon' },
+          { choice_list_item_id: choice_avg_s1.id, language_code: 'en', label: 'Average' },
+          { choice_list_item_id: choice_avg_s1.id, language_code: 'fr', label: 'Moyen' },
+          { choice_list_item_id: choice_poor_s1.id, language_code: 'en', label: 'Poor' },
+          { choice_list_item_id: choice_poor_s1.id, language_code: 'fr', label: 'Pauvre' },
+        ]
+    });
+
     console.log(`Added Translations for Survey 1`);
   } else {
      console.warn(`Could not find all elements for Survey 1 translations.`);
@@ -207,25 +220,33 @@ async function main() {
 
 
   // Translations for Survey 2
-  const q1_s2 = survey2.blocks[0].questions.find(q => q.name === 'Q1_Interest');
-  const choice_yes_s2 = q1_s2?.choice_items.find(c => c.value === 'Yes');
-  const choice_no_s2 = q1_s2?.choice_items.find(c => c.value === 'No');
+  const q1_s2 = survey2.blocks[0].questions.find((q: Question) => q.name === 'Q1_Interest');
+  const choice_yes_s2 = q1_s2?.choice_items.find((c: ChoiceListItem) => c.value === 'Yes');
+  const choice_no_s2 = q1_s2?.choice_items.find((c: ChoiceListItem) => c.value === 'No');
 
   if (q1_s2 && choice_yes_s2 && choice_no_s2) {
-    await prisma.translation.createMany({
+    // Create Survey Translations
+    await prisma.surveyTranslation.createMany({
       data: [
-        // Survey Name
-        { element_type: 'Survey', element_id: survey2.id, surveyId: survey2.id, text_key: 'name', language_code: 'en', translated_text: 'Product Interest EN/DE' },
-        { element_type: 'Survey', element_id: survey2.id, surveyId: survey2.id, text_key: 'name', language_code: 'de', translated_text: 'Produktinteresse DE/EN' },
-        // Question 1 Text
-        { element_type: 'Question', element_id: q1_s2.id, questionId: q1_s2.id, text_key: 'TEXT', language_code: 'en', translated_text: 'Are you interested in our new product?' },
-        { element_type: 'Question', element_id: q1_s2.id, questionId: q1_s2.id, text_key: 'TEXT', language_code: 'de', translated_text: 'Sind Sie an unserem neuen Produkt interessiert?' },
-        // Choice Texts for Q1
-        { element_type: 'ChoiceListItem', element_id: choice_yes_s2.id, choiceListItemId: choice_yes_s2.id, text_key: 'TEXT', language_code: 'en', translated_text: 'Yes' },
-        { element_type: 'ChoiceListItem', element_id: choice_yes_s2.id, choiceListItemId: choice_yes_s2.id, text_key: 'TEXT', language_code: 'de', translated_text: 'Ja' },
-        { element_type: 'ChoiceListItem', element_id: choice_no_s2.id, choiceListItemId: choice_no_s2.id, text_key: 'TEXT', language_code: 'en', translated_text: 'No' },
-        { element_type: 'ChoiceListItem', element_id: choice_no_s2.id, choiceListItemId: choice_no_s2.id, text_key: 'TEXT', language_code: 'de', translated_text: 'Nein' },
+        { survey_id: survey2.id, language_code: 'en', name: 'Product Interest EN/DE' },
+        { survey_id: survey2.id, language_code: 'de', name: 'Produktinteresse DE/EN' },
       ],
+    });
+    // Create Question Translations
+    await prisma.questionTranslation.createMany({
+        data: [
+          { question_id: q1_s2.id, language_code: 'en', text: 'Are you interested in our new product?' },
+          { question_id: q1_s2.id, language_code: 'de', text: 'Sind Sie an unserem neuen Produkt interessiert?' },
+        ]
+    });
+    // Create ChoiceListItem Translations
+    await prisma.choiceListItemTranslation.createMany({
+        data: [
+          { choice_list_item_id: choice_yes_s2.id, language_code: 'en', label: 'Yes' },
+          { choice_list_item_id: choice_yes_s2.id, language_code: 'de', label: 'Ja' },
+          { choice_list_item_id: choice_no_s2.id, language_code: 'en', label: 'No' },
+          { choice_list_item_id: choice_no_s2.id, language_code: 'de', label: 'Nein' },
+        ]
     });
     console.log(`Added Translations for Survey 2`);
   } else {
@@ -233,15 +254,19 @@ async function main() {
   }
 
   // Translations for Survey 3
-  const q1_s3 = survey3.blocks[0].questions.find(q => q.name === 'Q1_Age');
+  const q1_s3 = survey3.blocks[0].questions.find((q: Question) => q.name === 'Q1_Age');
   if (q1_s3) {
-    await prisma.translation.createMany({
+    // Create Survey Translations
+    await prisma.surveyTranslation.createMany({
       data: [
-        // Survey Name
-        { element_type: 'Survey', element_id: survey3.id, surveyId: survey3.id, text_key: 'name', language_code: 'en', translated_text: 'Simple English Survey' },
-        // Question 1 Text
-        { element_type: 'Question', element_id: q1_s3.id, questionId: q1_s3.id, text_key: 'TEXT', language_code: 'en', translated_text: 'What is your age?' },
+        { survey_id: survey3.id, language_code: 'en', name: 'Simple English Survey' },
       ],
+    });
+    // Create Question Translations
+    await prisma.questionTranslation.createMany({
+        data: [
+          { question_id: q1_s3.id, language_code: 'en', text: 'What is your age?' },
+        ]
     });
     console.log(`Added Translations for Survey 3`);
   } else {

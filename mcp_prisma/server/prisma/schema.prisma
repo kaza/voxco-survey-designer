@@ -6,9 +6,11 @@ generator client {
   provider = "prisma-client-js"
 }
 
-generator typegraphql {
-  provider            = "typegraphql-prisma"
-  formatGeneratedCode = "prettier"
+
+generator pothos {
+  provider = "prisma-pothos-types"
+  // Optional: Specify output path if needed, default is usually fine
+  // output = "./node_modules/@pothos/plugin-prisma/generated"
 }
 
 datasource db {
@@ -33,8 +35,7 @@ model Survey {
   settings     SurveySetting[]
   languages    SurveyLanguage[]
   blocks       Block[]
-  // Relation to generic translations table
-  translations Translation[]    @relation("SurveyTranslations") // Named relation for clarity
+  translations SurveyTranslation[] // Relation to specific survey translations
 
   @@map("Surveys") // Maps to the SQL table name
 }
@@ -46,9 +47,6 @@ model SurveySetting {
 
   // Relations
   survey       Survey        @relation(fields: [survey_id], references: [id], onDelete: Cascade)
-  // Relation to generic translations table
-  translations Translation[] @relation("SurveySettingTranslations")
-
   @@id([survey_id, setting_key]) // Composite primary key
   @@map("SurveySettings")
 }
@@ -75,8 +73,7 @@ model Block {
   survey       Survey         @relation(fields: [survey_id], references: [id], onDelete: Cascade)
   settings     BlockSetting[]
   questions    Question[]
-  // Relation to generic translations table
-  translations Translation[]  @relation("BlockTranslations")
+  translations BlockTranslation[] // Relation to specific block translations
 
   @@index([survey_id, order_index]) // Index for ordering
   @@map("Blocks")
@@ -89,9 +86,7 @@ model BlockSetting {
 
   // Relations
   block        Block         @relation(fields: [block_id], references: [id], onDelete: Cascade)
-  // Relation to generic translations table
-  translations Translation[] @relation("BlockSettingTranslations")
-
+  
   @@id([block_id, setting_key]) // Composite primary key
   @@map("BlockSettings")
 }
@@ -108,8 +103,7 @@ model Question {
   block        Block             @relation(fields: [block_id], references: [id], onDelete: Cascade)
   settings     QuestionSetting[]
   choice_items ChoiceListItem[] // Relation to choices linked directly
-  // Relation to generic translations table
-  translations Translation[]     @relation("QuestionTranslations")
+  translations QuestionTranslation[] // Relation to specific question translations
   // responses     Response[]     // Omitted as per request
 
   @@index([block_id, order_index]) // Index for ordering
@@ -123,9 +117,7 @@ model QuestionSetting {
 
   // Relations
   question     Question      @relation(fields: [question_id], references: [id], onDelete: Cascade)
-  // Relation to generic translations table
-  translations Translation[] @relation("QuestionSettingTranslations")
-
+  
   @@id([question_id, setting_key]) // Composite primary key
   @@map("QuestionSettings")
 }
@@ -140,50 +132,61 @@ model ChoiceListItem {
 
   // Relations
   question     Question      @relation(fields: [question_id], references: [id], onDelete: Cascade)
-  // Relation to generic translations table
-  translations Translation[] @relation("ChoiceListItemTranslations")
+  translations ChoiceListItemTranslation[] // Relation to specific choice item translations
   // responses   Response[] // Omitted as per request
 
   @@index([question_id, position]) // Index for ordering/lookup
   @@map("ChoiceListItems")
 }
 
-// Generic table for all translated texts
-model Translation {
-  id              Int    @id @default(autoincrement())
-  element_type    String // e.g., 'Survey', 'Question', 'ChoiceListItem', 'SurveySetting' etc.
-  element_id      Int // ID of the element in its respective table
-  text_key        String // e.g., 'TEXT', 'TITLE', or a setting_key
-  language_code   String
-  translated_text String
+// --- Specific Translation Tables ---
 
-  // Explicit relations back to parent types for polymorphism (Workaround 1 - more robust)
-  // Only one of these should be non-null for a given translation record.
-  survey                    Survey?          @relation("SurveyTranslations", fields: [surveyId], references: [id], onDelete: Cascade)
-  surveyId                  Int?
-  surveySetting             SurveySetting?   @relation("SurveySettingTranslations", fields: [surveySettingSurveyId, surveySettingKey], references: [survey_id, setting_key], onDelete: Cascade)
-  surveySettingSurveyId     Int? // Part of composite FK
-  surveySettingKey          String? // Part of composite FK
-  block                     Block?           @relation("BlockTranslations", fields: [blockId], references: [id], onDelete: Cascade)
-  blockId                   Int?
-  blockSetting              BlockSetting?    @relation("BlockSettingTranslations", fields: [blockSettingBlockId, blockSettingKey], references: [block_id, setting_key], onDelete: Cascade)
-  blockSettingBlockId       Int? // Part of composite FK
-  blockSettingKey           String? // Part of composite FK
-  question                  Question?        @relation("QuestionTranslations", fields: [questionId], references: [id], onDelete: Cascade)
-  questionId                Int?
-  questionSetting           QuestionSetting? @relation("QuestionSettingTranslations", fields: [questionSettingQuestionId, questionSettingKey], references: [question_id, setting_key], onDelete: Cascade)
-  questionSettingQuestionId Int? // Part of composite FK
-  questionSettingKey        String? // Part of composite FK
-  choiceListItem            ChoiceListItem?  @relation("ChoiceListItemTranslations", fields: [choiceListItemId], references: [id], onDelete: Cascade)
-  choiceListItemId          Int?
+model SurveyTranslation {
+  survey_id     Int
+  language_code String
+  name          String // Translated survey name
 
-  @@unique([element_type, element_id, text_key, language_code]) // Ensure unique translations
-  @@index([element_type, element_id]) // Index for finding translations for an element
-  // Composite foreign key indices (needed for Prisma with composite FKs)
-  @@index([surveySettingSurveyId, surveySettingKey])
-  @@index([blockSettingBlockId, blockSettingKey])
-  @@index([questionSettingQuestionId, questionSettingKey])
-  @@map("Translations")
+  // Relations
+  survey Survey @relation(fields: [survey_id], references: [id], onDelete: Cascade)
+
+  @@id([survey_id, language_code])
+  @@map("SurveyTranslations")
+}
+
+model BlockTranslation {
+  block_id      Int
+  language_code String
+  name          String // Translated block name
+
+  // Relations
+  block Block @relation(fields: [block_id], references: [id], onDelete: Cascade)
+
+  @@id([block_id, language_code])
+  @@map("BlockTranslations")
+}
+
+model QuestionTranslation {
+  question_id   Int
+  language_code String
+  text          String // Translated question text
+
+  // Relations
+  question Question @relation(fields: [question_id], references: [id], onDelete: Cascade)
+
+  @@id([question_id, language_code])
+  @@map("QuestionTranslations")
+}
+
+model ChoiceListItemTranslation {
+  choice_list_item_id Int
+  language_code       String
+  label               String // Translated choice label
+
+  // Relations
+  choice_list_item ChoiceListItem @relation(fields: [choice_list_item_id], references: [id], onDelete: Cascade)
+
+  @@id([choice_list_item_id, language_code])
+  @@map("ChoiceListItemTranslations")
 }
 
 // --- Models omitted based on request/missing definitions ---
