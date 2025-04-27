@@ -1,4 +1,5 @@
 import { builder } from '../../builder-instance.js';
+import { Prisma } from '@prisma/client';
 
 // Define the ChoiceListItem object type
 builder.prismaObject('ChoiceListItem', {
@@ -13,9 +14,37 @@ builder.prismaObject('ChoiceListItem', {
 
     // Expose the relation back to Question
     question: t.relation('question'),
-    translations: t.relation('translations'), // Expose the relation to ChoiceListItemTranslation
-
-    // Omit translations relation for now
-    // translations: t.relation('translations')
+    
+    // Add filtered translations field using prismaField
+    translations: t.prismaField({
+      type: ['ChoiceListItemTranslation'],
+      args: {
+        where: t.arg({
+          type: 'JSON',
+          required: false,
+        }),
+      },
+      resolve: async (query, parent, args, ctx) => {
+        try {
+          // Construct where clause for Prisma with proper typing
+          const whereClause: Prisma.ChoiceListItemTranslationWhereInput = {
+            choice_list_item_id: parent.id,
+          };
+          
+          // Add language_code filter if provided
+          if (args.where?.languageCode) {
+            whereClause.language_code = args.where.languageCode;
+          }
+          
+          return await ctx.prisma.choiceListItemTranslation.findMany({
+            ...query,
+            where: whereClause,
+          });
+        } catch (error) {
+          console.error('Error in ChoiceListItem.translations resolver:', error);
+          return [];
+        }
+      },
+    }),
   }),
 }); 

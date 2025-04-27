@@ -3,7 +3,9 @@ import PrismaPlugin from '@pothos/plugin-prisma';
 import type PrismaTypes from '@pothos/plugin-prisma/generated';
 import DirectivesPlugin from '@pothos/plugin-directives';
 import SimpleObjectsPlugin from '@pothos/plugin-simple-objects';
+import PrismaUtilsPlugin from '@pothos/plugin-prisma-utils';
 import { DateTimeResolver } from 'graphql-scalars';
+import { GraphQLJSON } from 'graphql-scalars';
 import { PrismaClient } from '@prisma/client';
 
 // Export Prisma client for convenience if needed elsewhere, or keep it scoped
@@ -22,14 +24,23 @@ export const builder = new SchemaBuilder<{
       Input: Date;
       Output: Date;
     };
+    JSON: {
+      Input: any;
+      Output: any;
+    };
   };
   Context: PothosContext;
 }>({
-  plugins: [PrismaPlugin, DirectivesPlugin, SimpleObjectsPlugin],
+  plugins: [
+    PrismaPlugin,
+    DirectivesPlugin,
+    SimpleObjectsPlugin,
+    PrismaUtilsPlugin
+  ],
   prisma: {
     client: prisma,
     exposeDescriptions: true,
-    filterConnectionTotalCount: true,
+    // filterConnectionTotalCount: true,
     // Consider adding onUnusedQuery option for development
     // onUnusedQuery: process.env.NODE_ENV === 'production' ? null : 'warn',
   },
@@ -37,4 +48,7 @@ export const builder = new SchemaBuilder<{
 
 // Add the DateTime scalar immediately after builder creation
 // This ensures it's available before types/fields try to use it
-builder.addScalarType("DateTime", DateTimeResolver, {}); 
+builder.addScalarType("DateTime", DateTimeResolver, {});
+
+// Add JSON scalar type
+builder.addScalarType("JSON", GraphQLJSON, {}); 
