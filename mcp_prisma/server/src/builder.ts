@@ -21,6 +21,9 @@ import './graphql/mutations/survey.js'; // Import to register survey mutations
 import './graphql/mutations/block.js'; // Import to register block mutations
 import './graphql/mutations/question.js'; // Import to register question mutations
 import './graphql/mutations/choiceListItem.js'; // Import to register choice list item mutations
+import './graphql/mutations/questionTranslation.js'; // Import to register question translation mutations
+import './graphql/mutations/choiceListItemTranslation.js'; // Import to register choice list item translation mutations
+import './graphql/mutations/surveyTranslation.js'; // Import to register survey translation mutations
 // Import other mutation files here later
 
 // Initialize the Query type (required)

@@ -7,11 +7,14 @@ import remarkGfm from "remark-gfm";
 export function ChatPage() {
   const [selectedModel, setSelectedModel] = useState("claude");
   
-  const { messages, input, handleInputChange, handleSubmit, isLoading } =
+  const { messages, input, handleInputChange, handleSubmit, status, error } =
     useChat({
       api: "/api/chat",
       body: {
         model: selectedModel,
+      },
+      onError: (err) => {
+        console.error("Chat error:", err);
       },
     });
 
@@ -167,6 +170,13 @@ export function ChatPage() {
       {/* Input form - fixed at bottom */}
       <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-3 border-t border-gray-200 dark:border-gray-700">
         <div className="max-w-full mx-auto">
+          {/* Error display area */}
+          {error && (
+            <div className="mb-2 p-2 text-center text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900 border border-red-300 dark:border-red-700 rounded-lg text-sm">
+              <p>Error: {error.message}</p>
+            </div>
+          )}
+          {/* Form */}
           <form onSubmit={handleSubmit} className="relative flex items-center">
             {/* Model selector */}
             <div className="mr-2">
@@ -197,7 +207,7 @@ export function ChatPage() {
                 value={input}
                 onChange={handleInputChange}
                 placeholder="Type your message..."
-                disabled={isLoading}
+                disabled={status !== 'ready'}
               />
               <button
                 className={`absolute right-2 top-1/2 transform -translate-y-1/2 rounded-full h-10 w-10 flex items-center justify-center transition-all ${
@@ -206,9 +216,9 @@ export function ChatPage() {
                     : "bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed"
                 }`}
                 type="submit"
-                disabled={!input.trim() || isLoading}
+                disabled={!input.trim() || status !== 'ready'}
               >
-                {isLoading ? (
+                {(status === 'submitted' || status === 'streaming') ? (
                   <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
                   <ArrowUpIcon className="h-5 w-5" />
